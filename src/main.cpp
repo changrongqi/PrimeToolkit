@@ -12,7 +12,11 @@
 #include <sstream>
 #include <windows.h>
 
-// ---------- JSON helpers (no library dependency) ----------
+using namespace PrimeCore;
+
+// ============================================================
+// JSON helpers (no library dependency)
+// ============================================================
 
 static std::string json_escape(const std::string& s) {
     std::string out;
@@ -30,8 +34,8 @@ static std::string json_escape(const std::string& s) {
     return out;
 }
 
-static std::string json_number(uint64_t n) {
-    return std::to_string(n);
+static std::string json_number(int128_t n) {
+    return n.to_string();
 }
 
 static std::string json_bool(bool b) {
@@ -39,34 +43,36 @@ static std::string json_bool(bool b) {
 }
 
 // Build JSON array of [prime, exponent] pairs for factorization
-static std::string factorization_json(const std::vector<std::pair<uint64_t, int>>& factors) {
+static std::string factorization_json(const std::vector<std::pair<int128_t, int>>& factors) {
     std::string json = "[";
     for (size_t i = 0; i < factors.size(); ++i) {
         if (i > 0) json += ",";
-        json += "[" + std::to_string(factors[i].first) + "," + std::to_string(factors[i].second) + "]";
+        json += "[" + factors[i].first.to_string() + "," + std::to_string(factors[i].second) + "]";
     }
     json += "]";
     return json;
 }
 
 // Build JSON array of primes
-static std::string primes_json(const std::vector<uint64_t>& primes) {
+static std::string primes_json(const std::vector<int128_t>& primes) {
     std::string json = "[";
     for (size_t i = 0; i < primes.size(); ++i) {
         if (i > 0) json += ",";
-        json += std::to_string(primes[i]);
+        json += primes[i].to_string();
     }
     json += "]";
     return json;
 }
 
-// ---------- Query parameter helpers ----------
+// ============================================================
+// Query parameter helpers
+// ============================================================
 
-static bool get_query_uint64(const HttpServer::Request& req, const std::string& key, uint64_t& out) {
+static bool get_query_int128(const HttpServer::Request& req, const std::string& key, int128_t& out) {
     auto it = req.query_params.find(key);
     if (it == req.query_params.end()) return false;
     try {
-        out = std::stoull(it->second);
+        out = int128_t::from_string(it->second);
         return true;
     } catch (...) {
         return false;
@@ -87,12 +93,14 @@ static HttpServer::Response ok_response(const std::string& result_json) {
     return res;
 }
 
-// ---------- Route handlers ----------
+// ============================================================
+// Route handlers
+// ============================================================
 
 // GET /api/is_prime?n=...
 static HttpServer::Response handle_is_prime(const HttpServer::Request& req) {
-    uint64_t n;
-    if (!get_query_uint64(req, "n", n)) {
+    int128_t n;
+    if (!get_query_int128(req, "n", n)) {
         return error_response(400, "Missing or invalid parameter 'n'");
     }
     return ok_response(json_bool(PrimeCore::is_prime(n)));
@@ -100,8 +108,8 @@ static HttpServer::Response handle_is_prime(const HttpServer::Request& req) {
 
 // GET /api/next_prime?n=...
 static HttpServer::Response handle_next_prime(const HttpServer::Request& req) {
-    uint64_t n;
-    if (!get_query_uint64(req, "n", n)) {
+    int128_t n;
+    if (!get_query_int128(req, "n", n)) {
         return error_response(400, "Missing or invalid parameter 'n'");
     }
     return ok_response(json_number(PrimeCore::next_prime(n)));
@@ -109,11 +117,11 @@ static HttpServer::Response handle_next_prime(const HttpServer::Request& req) {
 
 // GET /api/prev_prime?n=...
 static HttpServer::Response handle_prev_prime(const HttpServer::Request& req) {
-    uint64_t n;
-    if (!get_query_uint64(req, "n", n)) {
+    int128_t n;
+    if (!get_query_int128(req, "n", n)) {
         return error_response(400, "Missing or invalid parameter 'n'");
     }
-    uint64_t result = PrimeCore::prev_prime(n);
+    int128_t result = PrimeCore::prev_prime(n);
     if (result == 0) {
         return error_response(404, "No prime found below given number");
     }
@@ -122,14 +130,14 @@ static HttpServer::Response handle_prev_prime(const HttpServer::Request& req) {
 
 // GET /api/primes?from=...&to=...
 static HttpServer::Response handle_primes(const HttpServer::Request& req) {
-    uint64_t from, to;
-    if (!get_query_uint64(req, "from", from) || !get_query_uint64(req, "to", to)) {
+    int128_t from, to;
+    if (!get_query_int128(req, "from", from) || !get_query_int128(req, "to", to)) {
         return error_response(400, "Missing or invalid parameters 'from' and 'to'");
     }
     if (from > to) {
         return error_response(400, "'from' must be <= 'to'");
     }
-    if (to - from > 10000000ULL) {
+    if (to.value - from.value > 10000000ULL) {
         return error_response(400, "Range too large (max 10,000,000)");
     }
     auto primes = PrimeCore::primes_in_range(from, to);
@@ -138,23 +146,23 @@ static HttpServer::Response handle_primes(const HttpServer::Request& req) {
 
 // GET /api/primes_count?from=...&to=...
 static HttpServer::Response handle_primes_count(const HttpServer::Request& req) {
-    uint64_t from, to;
-    if (!get_query_uint64(req, "from", from) || !get_query_uint64(req, "to", to)) {
+    int128_t from, to;
+    if (!get_query_int128(req, "from", from) || !get_query_int128(req, "to", to)) {
         return error_response(400, "Missing or invalid parameters 'from' and 'to'");
     }
     if (from > to) {
         return error_response(400, "'from' must be <= 'to'");
     }
-    return ok_response(json_number(PrimeCore::primes_count(from, to)));
+    return ok_response(std::to_string(PrimeCore::primes_count(from, to)));
 }
 
 // GET /api/factorize?n=...
 static HttpServer::Response handle_factorize(const HttpServer::Request& req) {
-    uint64_t n;
-    if (!get_query_uint64(req, "n", n)) {
+    int128_t n;
+    if (!get_query_int128(req, "n", n)) {
         return error_response(400, "Missing or invalid parameter 'n'");
     }
-    if (n <= 1) {
+    if (n.value <= 1) {
         return error_response(400, "Number must be > 1");
     }
     auto factors = PrimeCore::factorize(n);
@@ -163,17 +171,19 @@ static HttpServer::Response handle_factorize(const HttpServer::Request& req) {
 
 // GET /api/nth_prime?n=...
 static HttpServer::Response handle_nth_prime(const HttpServer::Request& req) {
-    uint64_t n;
-    if (!get_query_uint64(req, "n", n)) {
+    int128_t n;
+    if (!get_query_int128(req, "n", n)) {
         return error_response(400, "Missing or invalid parameter 'n'");
     }
-    if (n == 0 || n > 10000000ULL) {
+    if (n.value == 0 || n.value > 10000000ULL) {
         return error_response(400, "'n' must be between 1 and 10,000,000");
     }
     return ok_response(json_number(PrimeCore::nth_prime(n)));
 }
 
-// ---------- Entry point ----------
+// ============================================================
+// Entry point
+// ============================================================
 
 int main() {
     // Set console to UTF-8

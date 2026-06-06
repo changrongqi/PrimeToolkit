@@ -14,6 +14,7 @@ endif()
 
 # Source files grouped by module
 set(CORE_SOURCES
+    src/core/int128_t.cpp
     src/core/primality.cpp
     src/core/sieve.cpp
     src/core/factorization.cpp

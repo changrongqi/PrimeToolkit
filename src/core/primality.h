@@ -2,23 +2,27 @@
 // ============================================================
 // primality.h - Miller-Rabin deterministic primality test
 // Single responsibility: determine if a number is prime
+// Supports up to 128-bit integers via int128_t.
 // ============================================================
 
-#include <cstdint>
+#include "int128_t.h"
 
 namespace PrimeCore {
 
-// Deterministic Miller-Rabin for all 64-bit integers.
-// Uses bases {2, 3, 5, 7, 11, 13, 17} - proven sufficient for n < 2^64.
-bool is_prime(uint64_t n);
+// Deterministic Miller-Rabin primality test.
+// For 64-bit range: uses bases {2, 325, 9375, 28178, 450775, 9780504, 1795265022}
+// For 128-bit range: uses additional bases per known deterministic sets.
+// Returns true if n is definitely prime.
+bool is_prime(int128_t n);
 
 // Find next prime >= n
-uint64_t next_prime(uint64_t n);
+int128_t next_prime(int128_t n);
 
 // Find previous prime <= n (returns 0 if none found)
-uint64_t prev_prime(uint64_t n);
+int128_t prev_prime(int128_t n);
 
 // Get the nth prime (1-indexed: nth_prime(1) = 2)
-uint64_t nth_prime(uint64_t n);
+// Supports n up to practical limits (~10^8 for reasonable runtime)
+int128_t nth_prime(int128_t n);
 
 } // namespace PrimeCore

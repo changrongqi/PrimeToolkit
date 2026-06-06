@@ -13,6 +13,7 @@ if exist "%GPP%" (
     echo [1/2] Compiling...
     "%GPP%" -std=c++17 -O3 -march=native ^
         -o "PrimeToolkit.exe" ^
+        src\core\int128_t.cpp ^
         src\core\primality.cpp ^
         src\core\sieve.cpp ^
         src\core\factorization.cpp ^

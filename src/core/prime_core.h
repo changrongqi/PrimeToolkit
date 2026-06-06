@@ -1,12 +1,13 @@
-#pragma once
-// ============================================================
-// prime_core.h - Aggregated public API
-// Single responsibility: provide unified include for all modules
-// ============================================================
+// prime_core.h  --  Aggregated public API
+// Copyright (c) 2024 PrimeToolkit Project
+//
+// Single responsibility: provide unified include for all modules.
 
-#include "primality.h"
-#include "sieve.h"
-#include "factorization.h"
+#pragma once
+
+#include "core/primality.h"
+#include "core/sieve.h"
+#include "core/factorization.h"
 
 // All functions are in namespace PrimeCore.
 // See individual headers for detailed documentation.

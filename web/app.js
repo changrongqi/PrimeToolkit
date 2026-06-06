@@ -235,6 +235,7 @@ function initPrimeGeneration() {
     const listEl = $('#gen-result-list');
 
     function renderPrimes(from, to, primes) {
+        hideLoading('gen-loading');
         showResult('gen-result');
         $('#gen-result-summary').textContent =
             `${I18n.t('genFound')} ${fmt(primes.length)} ${I18n.t('genPrimes')} [${fmt(from)}, ${fmt(to)}]`;
@@ -246,6 +247,7 @@ function initPrimeGeneration() {
     }
 
     function renderCount(from, to, count) {
+        hideLoading('gen-loading');
         showResult('gen-result');
         $('#gen-result-summary').textContent =
             `${I18n.t('genCount')} ${fmt(count)} ${I18n.t('genPrimesIn')} [${fmt(from)}, ${fmt(to)}]`;

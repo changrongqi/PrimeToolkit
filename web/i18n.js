@@ -30,7 +30,7 @@ const I18n = (function () {
             tabNthPrime: 'Nth Prime',
 
             // Tab 1: Primality
-            ptDesc: 'Deterministic Miller-Rabin for all 64-bit integers. Instant result.',
+            ptDesc: 'Deterministic Miller-Rabin for all 128-bit integers. Instant result.',
             ptEnterNumber: 'Enter a number:',
             ptPlaceholder: 'e.g. 999999999989',
             ptCheck: 'Check',
@@ -66,7 +66,7 @@ const I18n = (function () {
             genInvalidInput: 'Please enter valid integers',
 
             // Tab 3: Factorization
-            facDesc: 'Decompose any 64-bit integer into prime factors. Uses trial division + Pollard\'s Rho.',
+            facDesc: 'Decompose any 128-bit integer into prime factors. Uses trial division + Pollard\'s Rho.',
             facEnterNumber: 'Enter a number:',
             facPlaceholder: 'e.g. 1234567890123',
             facFactorize: 'Factorize',
@@ -94,7 +94,7 @@ const I18n = (function () {
             sieving: 'Sieving range...',
             factoring: 'Factoring...',
             searching: 'Searching...',
-            invalidNumber: 'Please enter a valid integer',
+            invalidNumber: 'Please enter a valid integer (max 39 digits, up to 2^128-1)',
             missingParam: 'Missing or invalid parameter',
         },
 
@@ -116,7 +116,7 @@ const I18n = (function () {
             tabNthPrime: '第 N 个质数',
 
             // Tab 1: Primality
-            ptDesc: '全 64 位整数确定性 Miller-Rabin 判定，即时返回结果。',
+            ptDesc: '全 128 位整数确定性 Miller-Rabin 判定，即时返回结果。',
             ptEnterNumber: '输入数字:',
             ptPlaceholder: '例如: 999999999989',
             ptCheck: '检测',
@@ -152,7 +152,7 @@ const I18n = (function () {
             genInvalidInput: '请输入有效整数',
 
             // Tab 3: Factorization
-            facDesc: '将任意 64 位整数分解为质因数。使用试除法 + Pollard\'s Rho 算法。',
+            facDesc: '将任意 128 位整数分解为质因数。使用试除法 + Pollard\'s Rho 算法。',
             facEnterNumber: '输入数字:',
             facPlaceholder: '例如: 1234567890123',
             facFactorize: '分解质因数',
@@ -180,7 +180,7 @@ const I18n = (function () {
             sieving: '筛法运行中...',
             factoring: '分解中...',
             searching: '搜索中...',
-            invalidNumber: '请输入有效整数',
+            invalidNumber: '请输入有效整数（最多39位，最大为 2^128-1）',
             missingParam: '缺少或无效的参数',
         }
     };

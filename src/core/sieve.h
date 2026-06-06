@@ -1,12 +1,14 @@
-#pragma once
-// ============================================================
-// sieve.h - Segmented sieve of Eratosthenes
-// Single responsibility: generate/count primes in ranges
+// sieve.h  --  Segmented sieve of Eratosthenes
+// Copyright (c) 2024 PrimeToolkit Project
+//
+// Single responsibility: generate/count primes in ranges.
 // Supports int128_t range bounds with practical memory limits.
-// ============================================================
 
-#include "int128_t.h"
+#pragma once
+
 #include <vector>
+
+#include "core/int128_t.h"
 
 namespace PrimeCore {
 
@@ -21,4 +23,4 @@ uint64_t primes_count(int128_t from, int128_t to);
 // Uses prime number theorem approximation + sieve.
 int128_t nth_prime(int128_t n);
 
-} // namespace PrimeCore
+}  // namespace PrimeCore

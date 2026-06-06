@@ -1,8 +1,10 @@
+// http_server.h  --  Minimal multi-threaded HTTP server (Winsock2)
+// Copyright (c) 2024 PrimeToolkit Project
+//
+// Single responsibility: accept HTTP connections and dispatch
+// routes.
+
 #pragma once
-// ============================================================
-// http_server.h - Minimal multi-threaded HTTP server (Winsock2)
-// Single responsibility: accept HTTP connections and dispatch routes
-// ============================================================
 
 #include <string>
 #include <unordered_map>
@@ -33,7 +35,7 @@ struct Response {
 using RouteHandler = std::function<Response(const Request&)>;
 
 class Server {
-public:
+ public:
     Server();
     ~Server();
 
@@ -48,7 +50,7 @@ public:
     void serve_static(const std::string& dir);
 
     // Start server on given port. Returns true on success.
-    // When open_browser is true, attempts to open localhost in default browser.
+    // When open_browser is true, opens localhost in browser.
     bool start(int port = 8080, bool open_browser = true);
 
     // Stop server
@@ -60,11 +62,12 @@ public:
     int port() const { return port_; }
 
     // URL helpers (exposed for internal request parsing)
-    void parse_query_params(const std::string& query_string,
-                            std::unordered_map<std::string, std::string>& params);
+    void parse_query_params(
+        const std::string& query_string,
+        std::unordered_map<std::string, std::string>& params);
     std::string url_decode(const std::string& str);
 
-private:
+ private:
     void accept_loop();
     void handle_client(uintptr_t client_socket);
     Response handle_request(const Request& req);
@@ -81,4 +84,4 @@ private:
     std::string static_dir_;
 };
 
-} // namespace HttpServer
+}  // namespace HttpServer

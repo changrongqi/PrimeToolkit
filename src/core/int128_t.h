@@ -1,5 +1,6 @@
 // ============================================================
-// int128_t.h - 128-bit unsigned integer type
+// int128_t.h  --  128-bit unsigned integer type
+// Copyright (c) 2024 PrimeToolkit Project
 // Single responsibility: wrap __uint128_t with full I/O and
 // arithmetic, providing a unified type for all core modules.
 // ============================================================
@@ -35,35 +36,77 @@ struct int128_t {
 
     // ---- Lifetime ----
     constexpr int128_t() noexcept : value(0) {}
+    // NOLINTNEXTLINE(runtime/explicit)
     constexpr int128_t(native_u128 v) noexcept : value(v) {}
     constexpr int128_t(uint64_t hi, uint64_t lo) noexcept
         : value((static_cast<native_u128>(hi) << 64) | lo) {}
-    constexpr int128_t(uint64_t v) noexcept : value(v) {}
-    constexpr int128_t(int v) noexcept : value(static_cast<uint64_t>(v)) {}
+    constexpr explicit int128_t(uint64_t v) noexcept : value(v) {}
+    constexpr explicit int128_t(int v) noexcept
+        : value(static_cast<uint64_t>(v)) {}
 
     // ---- Arithmetic (inline, native speed) ----
-    constexpr int128_t operator+(int128_t o) const noexcept { return value + o.value; }
-    constexpr int128_t operator-(int128_t o) const noexcept { return value - o.value; }
-    constexpr int128_t operator*(int128_t o) const noexcept { return value * o.value; }
-    constexpr int128_t operator/(int128_t o) const noexcept { return value / o.value; }
-    constexpr int128_t operator%(int128_t o) const noexcept { return value % o.value; }
-    constexpr int128_t operator>>(int shift) const noexcept { return value >> shift; }
-    constexpr int128_t operator<<(int shift) const noexcept { return value << shift; }
-    constexpr int128_t operator&(int128_t o) const noexcept { return value & o.value; }
-    constexpr int128_t operator|(int128_t o) const noexcept { return value | o.value; }
-    constexpr int128_t operator^(int128_t o) const noexcept { return value ^ o.value; }
+    constexpr int128_t operator+(int128_t o) const noexcept {
+        return value + o.value;
+    }
+    constexpr int128_t operator-(int128_t o) const noexcept {
+        return value - o.value;
+    }
+    constexpr int128_t operator*(int128_t o) const noexcept {
+        return value * o.value;
+    }
+    constexpr int128_t operator/(int128_t o) const noexcept {
+        return value / o.value;
+    }
+    constexpr int128_t operator%(int128_t o) const noexcept {
+        return value % o.value;
+    }
+    constexpr int128_t operator>>(int shift) const noexcept {
+        return value >> shift;
+    }
+    constexpr int128_t operator<<(int shift) const noexcept {
+        return value << shift;
+    }
+    constexpr int128_t operator&(int128_t o) const noexcept {
+        return value & o.value;
+    }
+    constexpr int128_t operator|(int128_t o) const noexcept {
+        return value | o.value;
+    }
+    constexpr int128_t operator^(int128_t o) const noexcept {
+        return value ^ o.value;
+    }
     constexpr int128_t operator~() const noexcept { return ~value; }
 
-    int128_t& operator+=(int128_t o) noexcept { value += o.value; return *this; }
-    int128_t& operator-=(int128_t o) noexcept { value -= o.value; return *this; }
-    int128_t& operator*=(int128_t o) noexcept { value *= o.value; return *this; }
-    int128_t& operator/=(int128_t o) noexcept { value /= o.value; return *this; }
-    int128_t& operator%=(int128_t o) noexcept { value %= o.value; return *this; }
-    int128_t& operator>>=(int shift) noexcept { value >>= shift; return *this; }
-    int128_t& operator<<=(int shift) noexcept { value <<= shift; return *this; }
-    int128_t& operator&=(int128_t o) noexcept { value &= o.value; return *this; }
-    int128_t& operator|=(int128_t o) noexcept { value |= o.value; return *this; }
-    int128_t& operator^=(int128_t o) noexcept { value ^= o.value; return *this; }
+    int128_t& operator+=(int128_t o) noexcept {
+        value += o.value; return *this;
+    }
+    int128_t& operator-=(int128_t o) noexcept {
+        value -= o.value; return *this;
+    }
+    int128_t& operator*=(int128_t o) noexcept {
+        value *= o.value; return *this;
+    }
+    int128_t& operator/=(int128_t o) noexcept {
+        value /= o.value; return *this;
+    }
+    int128_t& operator%=(int128_t o) noexcept {
+        value %= o.value; return *this;
+    }
+    int128_t& operator>>=(int shift) noexcept {
+        value >>= shift; return *this;
+    }
+    int128_t& operator<<=(int shift) noexcept {
+        value <<= shift; return *this;
+    }
+    int128_t& operator&=(int128_t o) noexcept {
+        value &= o.value; return *this;
+    }
+    int128_t& operator|=(int128_t o) noexcept {
+        value |= o.value; return *this;
+    }
+    int128_t& operator^=(int128_t o) noexcept {
+        value ^= o.value; return *this;
+    }
 
     int128_t& operator++() noexcept { ++value; return *this; }
     int128_t  operator++(int) noexcept { return value++; }
@@ -71,15 +114,29 @@ struct int128_t {
     int128_t  operator--(int) noexcept { return value--; }
 
     // ---- Comparison ----
-    constexpr bool operator==(int128_t o) const noexcept { return value == o.value; }
-    constexpr bool operator!=(int128_t o) const noexcept { return value != o.value; }
-    constexpr bool operator< (int128_t o) const noexcept { return value <  o.value; }
-    constexpr bool operator<=(int128_t o) const noexcept { return value <= o.value; }
-    constexpr bool operator> (int128_t o) const noexcept { return value >  o.value; }
-    constexpr bool operator>=(int128_t o) const noexcept { return value >= o.value; }
+    constexpr bool operator==(int128_t o) const noexcept {
+        return value == o.value;
+    }
+    constexpr bool operator!=(int128_t o) const noexcept {
+        return value != o.value;
+    }
+    constexpr bool operator< (int128_t o) const noexcept {
+        return value < o.value;
+    }
+    constexpr bool operator<=(int128_t o) const noexcept {
+        return value <= o.value;
+    }
+    constexpr bool operator> (int128_t o) const noexcept {
+        return value > o.value;
+    }
+    constexpr bool operator>=(int128_t o) const noexcept {
+        return value >= o.value;
+    }
 
     // ---- Boolean ----
-    constexpr explicit operator bool() const noexcept { return value != 0; }
+    constexpr explicit operator bool() const noexcept {
+        return value != 0;
+    }
     constexpr bool operator!() const noexcept { return value == 0; }
 
     // ---- Conversion ----
@@ -91,8 +148,12 @@ struct int128_t {
     }
 
     // ---- Accessors ----
-    constexpr uint64_t hi() const noexcept { return static_cast<uint64_t>(value >> 64); }
-    constexpr uint64_t lo() const noexcept { return static_cast<uint64_t>(value); }
+    constexpr uint64_t hi() const noexcept {
+        return static_cast<uint64_t>(value >> 64);
+    }
+    constexpr uint64_t lo() const noexcept {
+        return static_cast<uint64_t>(value);
+    }
 
     // ---- I/O (defined in .cpp) ----
     std::string to_string() const;
@@ -105,8 +166,8 @@ struct int128_t {
 // ============================================================
 
 // Modular multiplication: (a * b) % mod.
-// Fast path: when both operands fit in 64-bit, use native 128-bit multiply.
-// Slow path: binary decomposition (128 iterations max).
+// Fast path: when both operands fit in 64-bit, use native
+// 128-bit multiply. Slow path: binary decomposition.
 inline int128_t mul_mod128(int128_t a, int128_t b, int128_t mod) {
     if (a.value <= UINT64_MAX && b.value <= UINT64_MAX) {
         return (static_cast<native_u128>(a.lo()) * b.lo()) % mod.value;
@@ -140,15 +201,25 @@ inline int128_t isqrt128(int128_t n) {
 }
 
 // ---- Free-function operators for mixed-type arithmetic ----
-constexpr int128_t operator+(uint64_t a, int128_t b) noexcept { return int128_t(a) + b; }
-constexpr int128_t operator-(uint64_t a, int128_t b) noexcept { return int128_t(a) - b; }
-constexpr int128_t operator*(uint64_t a, int128_t b) noexcept { return int128_t(a) * b; }
-constexpr int128_t operator/(uint64_t a, int128_t b) noexcept { return int128_t(a) / b; }
-constexpr int128_t operator%(uint64_t a, int128_t b) noexcept { return int128_t(a) % b; }
+constexpr int128_t operator+(uint64_t a, int128_t b) noexcept {
+    return int128_t(a) + b;
+}
+constexpr int128_t operator-(uint64_t a, int128_t b) noexcept {
+    return int128_t(a) - b;
+}
+constexpr int128_t operator*(uint64_t a, int128_t b) noexcept {
+    return int128_t(a) * b;
+}
+constexpr int128_t operator/(uint64_t a, int128_t b) noexcept {
+    return int128_t(a) / b;
+}
+constexpr int128_t operator%(uint64_t a, int128_t b) noexcept {
+    return int128_t(a) % b;
+}
 
 // ---- Stream operators ----
 inline std::ostream& operator<<(std::ostream& os, int128_t v) {
     return os << v.to_string();
 }
 
-} // namespace PrimeCore
+}  // namespace PrimeCore

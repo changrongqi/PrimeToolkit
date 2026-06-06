@@ -1,14 +1,12 @@
-/*
- * primality.cpp - Miller-Rabin deterministic primality test
- * Copyright (c) 2024 PrimeToolkit Project
- * 
- * Supports full 128-bit range with deterministic bases.
- * Miller-Rabin bases verified per Sorenson & Webster (2015).
- */
+// primality.cpp  --  Miller-Rabin deterministic primality test
+// Copyright (c) 2024 PrimeToolkit Project
+//
+// Supports full 128-bit range with deterministic bases.
+// Miller-Rabin bases verified per Sorenson & Webster (2015).
 
 #include <cmath>
 
-#include "primality.h"
+#include "core/primality.h"
 
 namespace PrimeCore {
 
@@ -92,12 +90,17 @@ static bool miller_rabin(int128_t n) {
 // ============================================================
 static bool small_prime_check(int128_t n) {
     if (n.value < 2) return false;
-    if (n.value == 2 || n.value == 3 || n.value == 5 || n.value == 7) return true;
-    if ((n.value & 1) == 0 || n.value % 3 == 0 || n.value % 5 == 0) return false;
+    if (n.value == 2 || n.value == 3 ||
+        n.value == 5 || n.value == 7) {
+        return true;
+    }
+    if ((n.value & 1) == 0 || n.value % 3 == 0 ||
+        n.value % 5 == 0) {
+        return false;
+    }
 
     native_u128 limit = isqrt128(n).value + 1;
-    // Wheel: 2, 4, 2, 4, 6, 2, 6, 4, 2, 4, 6, 6, 2, 6, 4, 2, 6, 4, 6, 8, 4, 2...
-    // Simplified: skip multiples of 2, 3, 5 via {4,2,4,2,4,6,2,6} pattern
+    // Wheel: skip multiples of 2, 3, 5 via {4,2,4,2,4,6,2,6}
     static const uint8_t wheel[] = { 4, 2, 4, 2, 4, 6, 2, 6 };
     int wi = 0;
     for (native_u128 i = 7; i <= limit; i += wheel[wi]) {
@@ -131,14 +134,24 @@ int128_t next_prime(int128_t n) {
     uint32_t mod30 = candidate % 30;
     int wi = 0;
     for (int j = 0; j < 8; ++j) {
-        if (residues[j] >= mod30) { wi = j; break; }
+        if (residues[j] >= mod30) {
+            wi = j;
+            break;
+        }
     }
-    if (mod30 > residues[7]) { candidate += 30 - mod30 + residues[0]; wi = 0; }
-    else if (mod30 < residues[0]) { candidate += residues[0] - mod30; wi = 0; }
-    else { candidate += residues[wi] - mod30; }
+    if (mod30 > residues[7]) {
+        candidate += 30 - mod30 + residues[0];
+        wi = 0;
+    } else if (mod30 < residues[0]) {
+        candidate += residues[0] - mod30;
+        wi = 0;
+    } else {
+        candidate += residues[wi] - mod30;
+    }
 
     while (true) {
-        if (miller_rabin(int128_t(candidate))) return int128_t(candidate);
+        if (miller_rabin(int128_t(candidate)))
+            return int128_t(candidate);
         candidate += wheel30[wi];
         wi = (wi + 1) & 7;
     }
@@ -157,12 +170,16 @@ int128_t prev_prime(int128_t n) {
     uint32_t mod30 = candidate % 30;
     int wi = 0;
     for (int j = 0; j < 8; ++j) {
-        if (residues[j] <= mod30) { wi = j; break; }
+        if (residues[j] <= mod30) {
+            wi = j;
+            break;
+        }
     }
     candidate -= mod30 - residues[wi];
 
     while (candidate >= 2) {
-        if (miller_rabin(int128_t(candidate))) return int128_t(candidate);
+        if (miller_rabin(int128_t(candidate)))
+            return int128_t(candidate);
         if (candidate <= wheel30[wi]) break;
         candidate -= wheel30[wi];
         wi = (wi + 1) & 7;
@@ -170,4 +187,4 @@ int128_t prev_prime(int128_t n) {
     return int128_t(0);
 }
 
-} // namespace PrimeCore
+}  // namespace PrimeCore

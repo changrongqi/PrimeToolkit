@@ -1,24 +1,25 @@
-/*
- * main.cpp - Application entry point
- * Copyright (c) 2024 PrimeToolkit Project
- * 
- * Single responsibility: wire up routes and start the server.
- */
+// main.cpp  --  Application entry point
+// Copyright (c) 2024 PrimeToolkit Project
+//
+// Single responsibility: wire up routes and start the server.
+
+#include <windows.h>
 
 #include <cstdio>
-#include <windows.h>
+#include <string>
+#include <vector>
 
 #include "core/prime_core.h"
 #include "server/http_server.h"
 
-using namespace PrimeCore;
+using PrimeCore::int128_t;
 
 // ============================================================
 // JSON helpers (no library dependency)
 // ============================================================
 
+// Return as quoted string to prevent JS precision loss
 static std::string json_number(int128_t n) {
-    // Return as quoted string to prevent JavaScript precision loss for large numbers
     return "\"" + n.to_string() + "\"";
 }
 
@@ -27,12 +28,13 @@ static std::string json_bool(bool b) {
 }
 
 // Build JSON array of [prime, exponent] pairs for factorization
-static std::string factorization_json(const std::vector<std::pair<int128_t, int>>& factors) {
+static std::string factorization_json(
+    const std::vector<std::pair<int128_t, int>>& factors) {
     std::string json = "[";
     for (size_t i = 0; i < factors.size(); ++i) {
         if (i > 0) json += ",";
-        // Prime as quoted string, exponent as number
-        json += "[\"" + factors[i].first.to_string() + "\"," + std::to_string(factors[i].second) + "]";
+        json += "[\"" + factors[i].first.to_string() + "\"," +
+                std::to_string(factors[i].second) + "]";
     }
     json += "]";
     return json;
@@ -53,7 +55,9 @@ static std::string primes_json(const std::vector<int128_t>& primes) {
 // Query parameter helpers
 // ============================================================
 
-static bool get_query_int128(const HttpServer::Request& req, const std::string& key, int128_t& out) {
+static bool get_query_int128(const HttpServer::Request& req,
+                              const std::string& key,
+                              int128_t& out) {
     auto it = req.query_params.find(key);
     if (it == req.query_params.end()) return false;
     try {
@@ -64,14 +68,16 @@ static bool get_query_int128(const HttpServer::Request& req, const std::string& 
     }
 }
 
-static HttpServer::Response error_response(int code, const std::string& msg) {
+static HttpServer::Response error_response(int code,
+                                            const std::string& msg) {
     HttpServer::Response res;
     res.status_code = code;
     res.body = "{\"error\":\"" + msg + "\"}";
     return res;
 }
 
-static HttpServer::Response ok_response(const std::string& result_json) {
+static HttpServer::Response ok_response(
+    const std::string& result_json) {
     HttpServer::Response res;
     res.status_code = 200;
     res.body = R"({"result":)" + result_json + "}";
@@ -83,7 +89,8 @@ static HttpServer::Response ok_response(const std::string& result_json) {
 // ============================================================
 
 // GET /api/is_prime?n=...
-static HttpServer::Response handle_is_prime(const HttpServer::Request& req) {
+static HttpServer::Response handle_is_prime(
+    const HttpServer::Request& req) {
     int128_t n;
     if (!get_query_int128(req, "n", n)) {
         return error_response(400, "Missing or invalid parameter 'n'");
@@ -92,7 +99,8 @@ static HttpServer::Response handle_is_prime(const HttpServer::Request& req) {
 }
 
 // GET /api/next_prime?n=...
-static HttpServer::Response handle_next_prime(const HttpServer::Request& req) {
+static HttpServer::Response handle_next_prime(
+    const HttpServer::Request& req) {
     int128_t n;
     if (!get_query_int128(req, "n", n)) {
         return error_response(400, "Missing or invalid parameter 'n'");
@@ -101,23 +109,28 @@ static HttpServer::Response handle_next_prime(const HttpServer::Request& req) {
 }
 
 // GET /api/prev_prime?n=...
-static HttpServer::Response handle_prev_prime(const HttpServer::Request& req) {
+static HttpServer::Response handle_prev_prime(
+    const HttpServer::Request& req) {
     int128_t n;
     if (!get_query_int128(req, "n", n)) {
         return error_response(400, "Missing or invalid parameter 'n'");
     }
     int128_t result = PrimeCore::prev_prime(n);
     if (result == 0) {
-        return error_response(404, "No prime found below given number");
+        return error_response(404,
+            "No prime found below given number");
     }
     return ok_response(json_number(result));
 }
 
 // GET /api/primes?from=...&to=...
-static HttpServer::Response handle_primes(const HttpServer::Request& req) {
+static HttpServer::Response handle_primes(
+    const HttpServer::Request& req) {
     int128_t from, to;
-    if (!get_query_int128(req, "from", from) || !get_query_int128(req, "to", to)) {
-        return error_response(400, "Missing or invalid parameters 'from' and 'to'");
+    if (!get_query_int128(req, "from", from) ||
+        !get_query_int128(req, "to", to)) {
+        return error_response(400,
+            "Missing or invalid parameters 'from' and 'to'");
     }
     if (from > to) {
         return error_response(400, "'from' must be <= 'to'");
@@ -130,19 +143,24 @@ static HttpServer::Response handle_primes(const HttpServer::Request& req) {
 }
 
 // GET /api/primes_count?from=...&to=...
-static HttpServer::Response handle_primes_count(const HttpServer::Request& req) {
+static HttpServer::Response handle_primes_count(
+    const HttpServer::Request& req) {
     int128_t from, to;
-    if (!get_query_int128(req, "from", from) || !get_query_int128(req, "to", to)) {
-        return error_response(400, "Missing or invalid parameters 'from' and 'to'");
+    if (!get_query_int128(req, "from", from) ||
+        !get_query_int128(req, "to", to)) {
+        return error_response(400,
+            "Missing or invalid parameters 'from' and 'to'");
     }
     if (from > to) {
         return error_response(400, "'from' must be <= 'to'");
     }
-    return ok_response(std::to_string(PrimeCore::primes_count(from, to)));
+    return ok_response(
+        std::to_string(PrimeCore::primes_count(from, to)));
 }
 
 // GET /api/factorize?n=...
-static HttpServer::Response handle_factorize(const HttpServer::Request& req) {
+static HttpServer::Response handle_factorize(
+    const HttpServer::Request& req) {
     int128_t n;
     if (!get_query_int128(req, "n", n)) {
         return error_response(400, "Missing or invalid parameter 'n'");
@@ -155,13 +173,15 @@ static HttpServer::Response handle_factorize(const HttpServer::Request& req) {
 }
 
 // GET /api/nth_prime?n=...
-static HttpServer::Response handle_nth_prime(const HttpServer::Request& req) {
+static HttpServer::Response handle_nth_prime(
+    const HttpServer::Request& req) {
     int128_t n;
     if (!get_query_int128(req, "n", n)) {
         return error_response(400, "Missing or invalid parameter 'n'");
     }
     if (n.value == 0 || n.value > 10000000ULL) {
-        return error_response(400, "'n' must be between 1 and 10,000,000");
+        return error_response(400,
+            "'n' must be between 1 and 10,000,000");
     }
     return ok_response(json_number(PrimeCore::nth_prime(n)));
 }
@@ -210,16 +230,16 @@ int main() {
     printf("[*] Press Ctrl+C or close this window to stop.\n\n");
 
     if (!server.start(8080, true)) {
-        printf("[!] ERROR: Failed to start server. Port 8080 may be in use.\n");
+        printf("[!] ERROR: Failed to start server. "
+               "Port 8080 may be in use.\n");
         printf("[!] Press Enter to exit...\n");
         getchar();
         return 1;
     }
 
     printf("[*] Server is running. Opening browser...\n");
-    printf("[*] If browser doesn't open, visit: http://localhost:8080\n\n");
-
-    // Keep running until user presses Ctrl+C or closes window
+    printf("[*] If browser doesn't open, visit: "
+           "http://localhost:8080\n\n");
     printf("Press Ctrl+C to stop the server...\n");
 
     // Simple wait loop

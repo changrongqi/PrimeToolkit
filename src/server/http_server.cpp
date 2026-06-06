@@ -1,8 +1,10 @@
-// ============================================================
-// http_server.cpp - HTTP server implementation (Windows/Winsock2)
-// ============================================================
+// http_server.cpp  --  HTTP server implementation (Windows/Winsock2)
+// Copyright (c) 2024 PrimeToolkit Project
+//
+// Single responsibility: handle HTTP connections and serve
+// static files alongside registered API routes.
 
-#include "http_server.h"
+#include "server/http_server.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -13,10 +15,13 @@
 #include <shellapi.h>
 
 #include <cstdio>
+#include <cctype>
+#include <algorithm>
 #include <fstream>
 #include <sstream>
-#include <algorithm>
-#include <cctype>
+#include <string>
+#include <unordered_map>
+#include <utility>
 
 #ifdef _MSC_VER
 #pragma comment(lib, "ws2_32.lib")
@@ -40,8 +45,7 @@ static const char* get_status_message(int code) {
 Server::Server()
     : listen_socket_(INVALID_SOCKET)
     , port_(0)
-    , running_(false)
-{
+    , running_(false) {
     // Initialize Winsock
     WSADATA wsa_data;
     WSAStartup(MAKEWORD(2, 2), &wsa_data);
@@ -90,8 +94,9 @@ std::string Server::url_decode(const std::string& str) {
     return url_decode_impl(str);
 }
 
-void Server::parse_query_params(const std::string& query_string,
-                                 std::unordered_map<std::string, std::string>& params) {
+void Server::parse_query_params(
+    const std::string& query_string,
+    std::unordered_map<std::string, std::string>& params) {
     if (query_string.empty()) return;
     size_t pos = 0;
     while (pos < query_string.size()) {
@@ -99,8 +104,10 @@ void Server::parse_query_params(const std::string& query_string,
         size_t amp = query_string.find('&', pos);
         if (amp == std::string::npos) amp = query_string.size();
         if (eq != std::string::npos && eq < amp) {
-            std::string key = url_decode(query_string.substr(pos, eq - pos));
-            std::string val = url_decode(query_string.substr(eq + 1, amp - eq - 1));
+            std::string key = url_decode(
+                query_string.substr(pos, eq - pos));
+            std::string val = url_decode(
+                query_string.substr(eq + 1, amp - eq - 1));
             params[std::move(key)] = std::move(val);
         }
         pos = amp + 1;
@@ -108,9 +115,10 @@ void Server::parse_query_params(const std::string& query_string,
 }
 
 // Static helper for request parsing
-static void parse_query_params_static(const std::string& query_string,
-                                       std::unordered_map<std::string, std::string>& params,
-                                       const std::function<std::string(const std::string&)>& decoder) {
+static void parse_query_params_static(
+    const std::string& query_string,
+    std::unordered_map<std::string, std::string>& params,
+    const std::function<std::string(const std::string&)>& decoder) {
     if (query_string.empty()) return;
     size_t pos = 0;
     while (pos < query_string.size()) {
@@ -132,9 +140,12 @@ std::string Server::get_mime_type(const std::string& path) {
     if (dot == std::string::npos) return "application/octet-stream";
 
     std::string ext = path.substr(dot);
-    if (ext == ".html" || ext == ".htm") return "text/html; charset=utf-8";
-    if (ext == ".css")  return "text/css; charset=utf-8";
-    if (ext == ".js")   return "application/javascript; charset=utf-8";
+    if (ext == ".html" || ext == ".htm")
+        return "text/html; charset=utf-8";
+    if (ext == ".css")
+        return "text/css; charset=utf-8";
+    if (ext == ".js")
+        return "application/javascript; charset=utf-8";
     if (ext == ".json") return "application/json";
     if (ext == ".png")  return "image/png";
     if (ext == ".svg")  return "image/svg+xml";
@@ -167,7 +178,7 @@ static std::string recv_line(SOCKET sock) {
             char next;
             int n2 = recv(sock, &next, 1, MSG_PEEK);
             if (n2 > 0 && next == '\n') {
-                recv(sock, &next, 1, 0); // consume \n
+                recv(sock, &next, 1, 0);  // consume \n
             }
             break;
         }
@@ -197,7 +208,8 @@ static Request parse_http_request(SOCKET sock) {
 
     // Parse query parameters
     if (!query_string.empty()) {
-        parse_query_params_static(query_string, req.query_params, url_decode_impl);
+        parse_query_params_static(
+            query_string, req.query_params, url_decode_impl);
     }
 
     // Read headers (we just skip them for simplicity)
@@ -223,7 +235,8 @@ static Request parse_http_request(SOCKET sock) {
         req.body.resize(content_length);
         int total = 0;
         while (total < content_length) {
-            int n = recv(sock, req.body.data() + total, content_length - total, 0);
+            int n = recv(sock, req.body.data() + total,
+                         content_length - total, 0);
             if (n <= 0) break;
             total += n;
         }
@@ -250,7 +263,8 @@ Response Server::handle_request(const Request& req) {
 
     // Try static file serving
     if (!static_dir_.empty()) {
-        std::string filepath = static_dir_ + "/" + (req.path == "/" ? "index.html" : req.path);
+        std::string filepath = static_dir_ + "/" +
+            (req.path == "/" ? "index.html" : req.path);
         // Security: prevent directory traversal
         if (filepath.find("..") != std::string::npos) {
             Response res;
@@ -279,9 +293,11 @@ Response Server::handle_request(const Request& req) {
 void Server::handle_client(uintptr_t client_sock) {
     SOCKET sock = static_cast<SOCKET>(client_sock);
 
-    // Set socket timeout
-    DWORD timeout = 10000; // 10 seconds
-    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&timeout), sizeof(timeout));
+    // Set socket timeout (10 seconds)
+    DWORD timeout = 10000;
+    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,
+               reinterpret_cast<const char*>(&timeout),
+               sizeof(timeout));
 
     Request req = parse_http_request(sock);
     Response res = handle_request(req);
@@ -292,9 +308,11 @@ void Server::handle_client(uintptr_t client_sock) {
 
     const char* status_msg = get_status_message(res.status_code);
 
-    http_response += "HTTP/1.1 " + std::to_string(res.status_code) + " " + status_msg + "\r\n";
+    http_response += "HTTP/1.1 " +
+        std::to_string(res.status_code) + " " + status_msg + "\r\n";
     http_response += "Content-Type: " + res.content_type + "\r\n";
-    http_response += "Content-Length: " + std::to_string(res.body.size()) + "\r\n";
+    http_response += "Content-Length: " +
+        std::to_string(res.body.size()) + "\r\n";
     http_response += "Connection: close\r\n";
     http_response += "Access-Control-Allow-Origin: *\r\n";
 
@@ -304,7 +322,8 @@ void Server::handle_client(uintptr_t client_sock) {
     http_response += "\r\n";
     http_response += res.body;
 
-    send(sock, http_response.data(), static_cast<int>(http_response.size()), 0);
+    send(sock, http_response.data(),
+         static_cast<int>(http_response.size()), 0);
     closesocket(sock);
 }
 
@@ -315,8 +334,7 @@ void Server::accept_loop() {
         SOCKET client = accept(listen_socket_, nullptr, nullptr);
         if (client == INVALID_SOCKET) {
             if (running_.load()) {
-                // Small delay before retry
-                Sleep(50);
+                Sleep(50);  // Small delay before retry
             }
             continue;
         }
@@ -348,7 +366,9 @@ bool Server::start(int port, bool open_browser) {
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(static_cast<u_short>(port));
 
-    if (bind(listen_socket_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == SOCKET_ERROR) {
+    if (bind(listen_socket_,
+             reinterpret_cast<sockaddr*>(&addr),
+             sizeof(addr)) == SOCKET_ERROR) {
         closesocket(listen_socket_);
         listen_socket_ = INVALID_SOCKET;
         return false;
@@ -364,8 +384,10 @@ bool Server::start(int port, bool open_browser) {
     accept_thread_ = std::thread(&Server::accept_loop, this);
 
     if (open_browser) {
-        std::string url = "http://localhost:" + std::to_string(port) + "/";
-        ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+        std::string url =
+            "http://localhost:" + std::to_string(port) + "/";
+        ShellExecuteA(nullptr, "open", url.c_str(),
+                      nullptr, nullptr, SW_SHOWNORMAL);
     }
 
     return true;
@@ -384,4 +406,4 @@ void Server::stop() {
     }
 }
 
-} // namespace HttpServer
+}  // namespace HttpServer

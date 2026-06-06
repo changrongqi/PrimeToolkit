@@ -1,14 +1,13 @@
-/*
- * int128_t.cpp - I/O implementation for int128_t
- * Copyright (c) 2024 PrimeToolkit Project
- * 
- * Single responsibility: decimal string <-> 128-bit conversion.
- */
+// int128_t.cpp - I/O implementation for int128_t
+// Copyright (c) 2024 PrimeToolkit Project
+//
+// Single responsibility: decimal string <-> 128-bit conversion.
 
 #include <algorithm>
 #include <stdexcept>
+#include <string>
 
-#include "int128_t.h"
+#include "core/int128_t.h"
 
 namespace PrimeCore {
 
@@ -20,7 +19,7 @@ std::string int128_t::to_string() const {
 
     // Split into 9-digit chunks (10^9 fits in uint32_t for display)
     static const native_u128 BILLION = 1000000000ULL;
-    char buf[40]; // 128 bits needs at most 39 decimal digits + null
+    char buf[40];  // 128 bits needs at most 39 decimal digits + null
     int pos = 39;
     buf[pos] = '\0';
 
@@ -32,11 +31,15 @@ std::string int128_t::to_string() const {
         int digits = 9;
         if (n == 0) {
             // Count digits in the last chunk
-            if (chunk == 0) { digits = 1; }
-            else {
+            if (chunk == 0) {
+                digits = 1;
+            } else {
                 uint32_t tmp = chunk;
                 digits = 0;
-                while (tmp) { tmp /= 10; ++digits; }
+                while (tmp) {
+                    tmp /= 10;
+                    ++digits;
+                }
             }
         }
         for (int i = 0; i < digits; ++i) {
@@ -75,7 +78,8 @@ int128_t int128_t::from_string(const std::string& s) {
                 if (i == s.size()) break;
             }
             throw std::invalid_argument(
-                "int128_t::from_string: invalid character '" + std::string(1, c) + "'");
+                "int128_t::from_string: invalid character '"
+                + std::string(1, c) + "'");
         }
 
         if (result > max_before_mul) {
@@ -97,4 +101,4 @@ int128_t int128_t::from_string(const std::string& s) {
     return int128_t(result);
 }
 
-} // namespace PrimeCore
+}  // namespace PrimeCore

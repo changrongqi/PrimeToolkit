@@ -1,18 +1,16 @@
-/*
- * factorization.cpp - Prime factorization
- * Copyright (c) 2024 PrimeToolkit Project
- * 
- * Strategy: trial division for small factors + Pollard's Rho
- *           (Brent variant) for large composite remnants.
- * Supports full 128-bit range.
- */
+// factorization.cpp - Prime factorization
+// Copyright (c) 2024 PrimeToolkit Project
+//
+// Strategy: trial division for small factors + Pollard's Rho
+//           (Brent variant) for large composite remnants.
+// Supports full 128-bit range.
 
 #include <algorithm>
 #include <vector>
 #include <utility>
 
-#include "primality.h"
-#include "factorization.h"
+#include "core/primality.h"
+#include "core/factorization.h"
 
 namespace PrimeCore {
 
@@ -109,7 +107,8 @@ static int128_t pollard_rho_brent(int128_t n) {
 // ============================================================
 // Trial division for small factors
 // ============================================================
-static void trial_divide(int128_t& n, std::vector<std::pair<int128_t, int>>& factors,
+static void trial_divide(int128_t& n,
+                         std::vector<std::pair<int128_t, int>>& factors,
                          native_u128 limit) {
     // Factor out 2
     if ((n.value & 1) == 0) {
@@ -153,7 +152,8 @@ static void trial_divide(int128_t& n, std::vector<std::pair<int128_t, int>>& fac
 // ============================================================
 // Recursive factorization via Pollard's Rho
 // ============================================================
-static void factor_recursive(int128_t n, std::vector<std::pair<int128_t, int>>& factors) {
+static void factor_recursive(int128_t n,
+                               std::vector<std::pair<int128_t, int>>& factors) {
     if (n.value <= 1) return;
     if (is_prime(n)) {
         factors.emplace_back(n, 1);
@@ -198,7 +198,9 @@ std::vector<std::pair<int128_t, int>> factorize(int128_t n) {
 
     // Sort by factor
     std::sort(result.begin(), result.end(),
-              [](const auto& a, const auto& b) { return a.first.value < b.first.value; });
+              [](const auto& a, const auto& b) {
+                  return a.first.value < b.first.value;
+              });
 
     // Merge duplicate factors from different phases
     if (result.size() > 1) {
@@ -217,4 +219,4 @@ std::vector<std::pair<int128_t, int>> factorize(int128_t n) {
     return result;
 }
 
-} // namespace PrimeCore
+}  // namespace PrimeCore

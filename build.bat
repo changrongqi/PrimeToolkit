@@ -17,10 +17,11 @@ if %ERRORLEVEL% EQU 0 (
         src\core\primality.cpp ^
         src\core\sieve.cpp ^
         src\core\factorization.cpp ^
+        src\api.cpp ^
         src\server\http_server.cpp ^
         src\main.cpp ^
         -I src ^
-        -lws2_32 -lshell32
+        -lws2_32
 
     if %ERRORLEVEL% EQU 0 (
         echo [2/2] Build complete!
@@ -45,10 +46,11 @@ for %%P in (%MIN_PATHS%) do (
             src\core\primality.cpp ^
             src\core\sieve.cpp ^
             src\core\factorization.cpp ^
+            src\api.cpp ^
             src\server\http_server.cpp ^
             src\main.cpp ^
             -I src ^
-            -lws2_32 -lshell32
+            -lws2_32
 
         if %ERRORLEVEL% EQU 0 (
             echo [2/2] Build complete!

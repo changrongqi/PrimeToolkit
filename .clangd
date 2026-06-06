@@ -1,6 +1,9 @@
 # .clangd - Disable overly strict code style diagnostics
 # These checks are cosmetic and don't affect code correctness
 
+CompileFlags:
+  Add: [-Isrc]
+
 Diagnostics:
   UnusedIncludes: None
   ClangTidy:

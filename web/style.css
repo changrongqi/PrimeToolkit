@@ -46,6 +46,8 @@ body {
     max-width: 800px;
     margin: 0 auto;
     padding: 32px 20px 48px;
+    padding-top: max(32px, env(safe-area-inset-top));
+    padding-bottom: max(48px, env(safe-area-inset-bottom));
 }
 
 /* ---- Header ---- */
@@ -78,10 +80,18 @@ body {
     padding: 4px;
     margin-bottom: 24px;
     border: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.tab-nav::-webkit-scrollbar {
+    display: none;
 }
 
 .tab-btn {
     flex: 1;
+    min-width: max-content;
     padding: 10px 16px;
     border: none;
     background: transparent;
@@ -176,15 +186,17 @@ body {
 
 input[type="text"] {
     width: 100%;
-    padding: 10px 14px;
+    padding: 12px 14px;
     background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     color: var(--text-primary);
-    font-size: 0.95rem;
+    font-size: 16px;
     font-family: var(--font-mono);
     transition: border-color var(--transition-fast);
     outline: none;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 input[type="text"]:focus {
@@ -194,6 +206,13 @@ input[type="text"]:focus {
 
 input[type="text"]::placeholder {
     color: var(--text-muted);
+}
+
+/* Prevent zoom on iOS */
+@media screen and (max-width: 600px) {
+    input[type="text"] {
+        font-size: 16px;
+    }
 }
 
 /* ---- Buttons ---- */
@@ -321,6 +340,14 @@ input[type="text"]::placeholder {
     font-size: 1.05rem;
     font-weight: 600;
     word-break: break-all;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+@media (max-width: 600px) {
+    .result-value {
+        font-size: 0.95rem;
+    }
 }
 
 .result-value.prime {
@@ -450,6 +477,13 @@ input[type="text"]::placeholder {
     z-index: 100;
 }
 
+@media (max-width: 600px) {
+    .settings-wrapper {
+        top: 12px;
+        right: 12px;
+    }
+}
+
 .settings-btn {
     display: flex;
     align-items: center;
@@ -462,6 +496,14 @@ input[type="text"]::placeholder {
     color: var(--text-secondary);
     cursor: pointer;
     transition: all var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 600px) {
+    .settings-btn {
+        width: 44px;
+        height: 44px;
+    }
 }
 
 .settings-btn:hover,
@@ -567,20 +609,19 @@ input[type="text"]::placeholder {
 /* ---- Responsive ---- */
 @media (max-width: 600px) {
     .app-container {
-        padding: 20px 12px 32px;
+        padding: 16px 12px 32px;
     }
 
-    .tab-nav {
-        flex-wrap: wrap;
+    .app-title {
+        font-size: 1.6rem;
     }
 
-    .tab-btn {
-        font-size: 0.8rem;
-        padding: 8px 10px;
+    .app-subtitle {
+        font-size: 0.75rem;
     }
 
     .card {
-        padding: 20px;
+        padding: 16px;
     }
 
     .input-row {
@@ -589,9 +630,49 @@ input[type="text"]::placeholder {
 
     .btn-row {
         flex-direction: column;
+        width: 100%;
     }
 
     .btn {
+        width: 100%;
         justify-content: center;
+        padding: 12px 20px;
+        min-height: 44px;
+    }
+
+    .prime-list {
+        max-height: 280px;
+    }
+
+    .prime-chip {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+
+    .result-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .factor-item {
+        padding: 12px;
+    }
+
+    .factor-prime {
+        font-size: 0.95rem;
+    }
+}
+
+/* Touch-friendly active states */
+@media (hover: none) {
+    .tab-btn:active,
+    .btn:active {
+        opacity: 0.8;
+        transform: scale(0.98);
+    }
+
+    .prime-chip:active {
+        background: var(--bg-hover);
     }
 }

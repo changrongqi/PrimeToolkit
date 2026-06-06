@@ -17,6 +17,13 @@ A high-performance prime number toolkit with C++ core and elegant web UI.
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript
 - **Build**: MinGW / MSVC compatible (auto-detection)
 
+## Requirements
+
+- **OS**: Windows 10/11 (64-bit)
+- **Compiler**: MinGW-w64 (g++) or Visual Studio 2022 with C++ tools
+  - MinGW: https://www.mingw-w64.org/
+  - VS2022: https://visualstudio.microsoft.com/downloads/
+
 ## Performance Highlights
 
 - Miller-Rabin with 7 deterministic bases (proven correct for all 64-bit integers)
@@ -31,8 +38,10 @@ A high-performance prime number toolkit with C++ core and elegant web UI.
 .\build.bat
 
 # Run (auto-starts server and opens browser)
-.\PrimeToolkit.exe
+.\build\bin\PrimeToolkit.exe
 ```
+
+> Note: The executable is located in `build\bin\` after building.
 
 Visit `http://localhost:8080` in your browser.
 

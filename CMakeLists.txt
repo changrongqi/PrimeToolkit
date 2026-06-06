@@ -4,12 +4,12 @@ project(PrimeToolkit LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Optimization flags for maximum speed
+# Optimization flags for maximum speed (x86-64 for cross-CPU compatibility)
 if(MSVC)
-    add_compile_options(/O2 /arch:AVX2 /GL)
+    add_compile_options(/O2 /GL)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
 else()
-    add_compile_options(-O3 -march=native -flto)
+    add_compile_options(-O3 -march=x86-64)
 endif()
 
 # Source files grouped by module

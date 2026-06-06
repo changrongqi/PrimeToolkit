@@ -3,13 +3,11 @@
 //
 // Single responsibility: configure and start the HTTP server.
 
-#include <windows.h>
+#include "api.h"
+#include "server/http_server.h"
 
 #include <cstdio>
 #include <string>
-
-#include "api.h"
-#include "server/http_server.h"
 
 void print_banner() {
     printf("============================================\n");

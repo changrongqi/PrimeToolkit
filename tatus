@@ -1,0 +1,22 @@
+warning: in the working copy of 'src/core/factorization.h', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/core/int128_t.h', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/core/primality.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/core/primality.h', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/core/prime_core.h', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/core/sieve.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/core/sieve.h', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/main.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/server/http_server.cpp', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/server/http_server.h', LF will be replaced by CRLF the next time Git touches it
+ src/core/factorization.h   |  25 [32m++++[m[31m----[m
+ src/core/int128_t.h        | 151 [32m+++++++++++++++++++++++++++++++++[m[31m------------[m
+ src/core/primality.cpp     |  57 [32m+++++++++++[m[31m------[m
+ src/core/primality.h       |  19 [32m+++[m[31m---[m
+ src/core/prime_core.h      |  17 [32m++[m[31m---[m
+ src/core/sieve.cpp         |  72 [32m++++++++++++[m[31m---------[m
+ src/core/sieve.h           |  16 [32m++[m[31m---[m
+ src/main.cpp               |  88 [32m++++++++++++++++[m[31m----------[m
+ src/server/http_server.cpp |  90 [32m+++++++++++++++++[m[31m----------[m
+ src/server/http_server.h   |  23 [32m++++[m[31m---[m
+ web/app.js                 |   2 [32m+[m
+ 11 files changed, 358 insertions(+), 202 deletions(-)

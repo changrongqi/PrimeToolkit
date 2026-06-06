@@ -3,15 +3,10 @@
 //
 // Single responsibility: handle HTTP connections and serve
 // static files alongside registered API routes.
+// Uses 4KB buffered socket I/O and a fixed-size thread pool.
 
 #include "server/http_server.h"
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
 #include <shellapi.h>
 
 #include <cstdio>
@@ -165,34 +160,73 @@ std::string Server::read_file(const std::string& filepath) {
     return "";
 }
 
-// ---------- Request parsing ----------
+// ============================================================
+// Buffered socket reader (4KB buffer)
+// ============================================================
+class SocketReader {
+ public:
+    explicit SocketReader(SOCKET sock) : sock_(sock) {}
 
-static std::string recv_line(SOCKET sock) {
-    std::string line;
-    char c;
-    while (true) {
-        int n = recv(sock, &c, 1, 0);
-        if (n <= 0) return "";
-        if (c == '\r') {
-            // Peek for \n
-            char next;
-            int n2 = recv(sock, &next, 1, MSG_PEEK);
-            if (n2 > 0 && next == '\n') {
-                recv(sock, &next, 1, 0);  // consume \n
+    // Read one line (strips CR/LF). Returns empty string on EOF.
+    std::string read_line() {
+        std::string line;
+        line.reserve(256);
+        while (true) {
+            int c = read_char();
+            if (c < 0) return line;
+            if (c == '\r') {
+                // Peek: if next is '\n', consume it
+                int next = read_char();
+                if (next >= 0 && next != '\n') {
+                    --pos_;  // unread
+                }
+                break;
             }
-            break;
+            if (c == '\n') break;
+            line += static_cast<char>(c);
         }
-        if (c == '\n') break;
-        line += c;
+        return line;
     }
-    return line;
-}
+
+    // Read exactly 'count' bytes into buffer. Returns actual bytes read.
+    int read_bytes(char* out, int count) {
+        int total = 0;
+        while (total < count) {
+            int c = read_char();
+            if (c < 0) break;
+            out[total++] = static_cast<char>(c);
+        }
+        return total;
+    }
+
+ private:
+    bool refill() {
+        pos_ = 0;
+        int n = recv(sock_, buf_, sizeof(buf_), 0);
+        if (n <= 0) return false;
+        end_ = n;
+        return true;
+    }
+
+    int read_char() {
+        if (pos_ >= end_ && !refill()) return -1;
+        return static_cast<unsigned char>(buf_[pos_++]);
+    }
+
+    SOCKET sock_;
+    char buf_[4096];
+    int pos_ = 0;
+    int end_ = 0;
+};
+
+// ---------- Request parsing ----------
 
 static Request parse_http_request(SOCKET sock) {
     Request req;
+    SocketReader reader(sock);
 
     // Parse request line
-    std::string request_line = recv_line(sock);
+    std::string request_line = reader.read_line();
     if (request_line.empty()) return req;
 
     std::istringstream line_stream(request_line);
@@ -212,17 +246,15 @@ static Request parse_http_request(SOCKET sock) {
             query_string, req.query_params, url_decode_impl);
     }
 
-    // Read headers (we just skip them for simplicity)
+    // Read headers
     int content_length = 0;
     while (true) {
-        std::string header = recv_line(sock);
+        std::string header = reader.read_line();
         if (header.empty()) break;
 
-        // Check Content-Length
         auto cl_pos = header.find("Content-Length:");
         if (cl_pos != std::string::npos) {
             std::string cl_val = header.substr(cl_pos + 15);
-            // Trim
             size_t start = cl_val.find_first_not_of(" \t");
             if (start != std::string::npos) {
                 content_length = std::stoi(cl_val.substr(start));
@@ -233,13 +265,7 @@ static Request parse_http_request(SOCKET sock) {
     // Read body if present
     if (content_length > 0) {
         req.body.resize(content_length);
-        int total = 0;
-        while (total < content_length) {
-            int n = recv(sock, req.body.data() + total,
-                         content_length - total, 0);
-            if (n <= 0) break;
-            total += n;
-        }
+        int total = reader.read_bytes(req.body.data(), content_length);
         req.body.resize(total);
     }
 
@@ -290,9 +316,7 @@ Response Server::handle_request(const Request& req) {
 
 // ---------- Client handling ----------
 
-void Server::handle_client(uintptr_t client_sock) {
-    SOCKET sock = static_cast<SOCKET>(client_sock);
-
+void Server::handle_client(SOCKET sock) {
     // Set socket timeout (10 seconds)
     DWORD timeout = 10000;
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,
@@ -327,6 +351,26 @@ void Server::handle_client(uintptr_t client_sock) {
     closesocket(sock);
 }
 
+// ============================================================
+// Thread pool
+// ============================================================
+
+void Server::worker_loop() {
+    while (true) {
+        SOCKET client;
+        {
+            std::unique_lock<std::mutex> lock(queue_mutex_);
+            queue_cv_.wait(lock, [this]() {
+                return !client_queue_.empty() || !running_.load();
+            });
+            if (!running_.load() && client_queue_.empty()) return;
+            client = client_queue_.front();
+            client_queue_.pop();
+        }
+        handle_client(client);
+    }
+}
+
 // ---------- Accept loop ----------
 
 void Server::accept_loop() {
@@ -334,15 +378,17 @@ void Server::accept_loop() {
         SOCKET client = accept(listen_socket_, nullptr, nullptr);
         if (client == INVALID_SOCKET) {
             if (running_.load()) {
-                Sleep(50);  // Small delay before retry
+                Sleep(50);
             }
             continue;
         }
 
-        // Handle each connection in a new thread
-        std::thread([this, client]() {
-            handle_client(client);
-        }).detach();
+        // Enqueue for thread pool
+        {
+            std::lock_guard<std::mutex> lock(queue_mutex_);
+            client_queue_.push(client);
+        }
+        queue_cv_.notify_one();
     }
 }
 
@@ -381,6 +427,16 @@ bool Server::start(int port, bool open_browser) {
     }
 
     running_.store(true);
+
+    // Start worker threads (thread pool)
+    int num_workers = std::thread::hardware_concurrency();
+    if (num_workers < 2) num_workers = 2;
+    if (num_workers > 8) num_workers = 8;
+    for (int i = 0; i < num_workers; ++i) {
+        worker_threads_.emplace_back(&Server::worker_loop, this);
+    }
+
+    // Start accept thread
     accept_thread_ = std::thread(&Server::accept_loop, this);
 
     if (open_browser) {
@@ -396,10 +452,19 @@ bool Server::start(int port, bool open_browser) {
 void Server::stop() {
     running_.store(false);
 
+    // Wake all workers
+    queue_cv_.notify_all();
+
     if (listen_socket_ != INVALID_SOCKET) {
         closesocket(listen_socket_);
         listen_socket_ = INVALID_SOCKET;
     }
+
+    // Join worker threads
+    for (auto& t : worker_threads_) {
+        if (t.joinable()) t.join();
+    }
+    worker_threads_.clear();
 
     if (accept_thread_.joinable()) {
         accept_thread_.join();

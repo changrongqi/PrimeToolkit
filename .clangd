@@ -1,4 +1,4 @@
-# .clangd - Disable overly strict code style checks
+# .clangd - Disable overly strict code style diagnostics
 # These checks are cosmetic and don't affect code correctness
 
 Diagnostics:

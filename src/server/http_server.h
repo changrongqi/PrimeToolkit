@@ -1,16 +1,26 @@
-// http_server.h  --  Minimal multi-threaded HTTP server (Winsock2)
+﻿// http_server.h  --  Minimal multi-threaded HTTP server (Winsock2)
 // Copyright (c) 2024 PrimeToolkit Project
 //
 // Single responsibility: accept HTTP connections and dispatch
-// routes.
+// routes via a fixed-size thread pool.
 
 #pragma once
 
-#include <string>
-#include <unordered_map>
-#include <functional>
-#include <thread>
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+
 #include <atomic>
+#include <condition_variable>
+#include <functional>
+#include <mutex>
+#include <queue>
+#include <string>
+#include <thread>
+#include <unordered_map>
 #include <vector>
 
 namespace HttpServer {
@@ -69,16 +79,24 @@ class Server {
 
  private:
     void accept_loop();
-    void handle_client(uintptr_t client_socket);
+    void worker_loop();
+    void handle_client(SOCKET client_socket);
     Response handle_request(const Request& req);
     std::string read_file(const std::string& filepath);
     std::string get_mime_type(const std::string& path);
 
-    uintptr_t listen_socket_;
+    SOCKET listen_socket_;
     int port_;
     std::atomic<bool> running_;
+
+    // Accept thread
     std::thread accept_thread_;
+
+    // Thread pool
     std::vector<std::thread> worker_threads_;
+    std::queue<SOCKET> client_queue_;
+    std::mutex queue_mutex_;
+    std::condition_variable queue_cv_;
 
     std::unordered_map<std::string, RouteHandler> routes_;
     std::string static_dir_;

@@ -25,6 +25,7 @@ set(SERVER_SOURCES
 )
 
 set(APP_SOURCES
+    src/api.cpp
     src/main.cpp
 )
 
@@ -39,6 +40,13 @@ add_executable(PrimeToolkit
 target_include_directories(PrimeToolkit PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
+
+# Warning flags
+if(MSVC)
+    target_compile_options(PrimeToolkit PRIVATE /W4)
+else()
+    target_compile_options(PrimeToolkit PRIVATE -Wall -Wextra -Wpedantic)
+endif()
 
 # Link Windows libraries
 if(WIN32)

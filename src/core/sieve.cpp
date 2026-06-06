@@ -18,14 +18,14 @@ namespace PrimeCore {
 // Base prime generation (small primes up to sqrt of range)
 // ============================================================
 static std::vector<uint64_t> generate_small_primes(uint64_t limit) {
-    std::vector<bool> is_prime(limit + 1, true);
-    is_prime[0] = is_prime[1] = false;
+    std::vector<char> is_prime(limit + 1, 1);
+    is_prime[0] = is_prime[1] = 0;
     uint64_t sqrt_lim =
         static_cast<uint64_t>(std::sqrt(static_cast<double>(limit))) + 1;
     for (uint64_t i = 2; i <= sqrt_lim; ++i) {
         if (is_prime[i]) {
             for (uint64_t j = i * i; j <= limit; j += i) {
-                is_prime[j] = false;
+                is_prime[j] = 0;
             }
         }
     }
@@ -103,12 +103,12 @@ std::vector<int128_t> primes_in_range(int128_t from, int128_t to) {
 
         uint64_t sqrt_to =
             static_cast<uint64_t>(std::sqrt(static_cast<double>(u_to))) + 1;
-        std::vector<bool> base_prime(sqrt_to + 1, true);
-        base_prime[0] = base_prime[1] = false;
+        std::vector<char> base_prime(sqrt_to + 1, 1);
+        base_prime[0] = base_prime[1] = 0;
         for (uint64_t i = 2; i * i <= sqrt_to; ++i) {
             if (base_prime[i]) {
                 for (uint64_t j = i * i; j <= sqrt_to; j += i) {
-                    base_prime[j] = false;
+                    base_prime[j] = 0;
                 }
             }
         }
@@ -172,12 +172,12 @@ uint64_t primes_count(int128_t from, int128_t to) {
 
         uint64_t sqrt_to =
             static_cast<uint64_t>(std::sqrt(static_cast<double>(u_to))) + 1;
-        std::vector<bool> base_prime(sqrt_to + 1, true);
-        base_prime[0] = base_prime[1] = false;
+        std::vector<char> base_prime(sqrt_to + 1, 1);
+        base_prime[0] = base_prime[1] = 0;
         for (uint64_t i = 2; i * i <= sqrt_to; ++i) {
             if (base_prime[i]) {
                 for (uint64_t j = i * i; j <= sqrt_to; j += i) {
-                    base_prime[j] = false;
+                    base_prime[j] = 0;
                 }
             }
         }
@@ -235,7 +235,7 @@ int128_t nth_prime(int128_t n) {
     // Generous overestimate for safety
     uint64_t limit = approx + (approx / 5) + 1000;
 
-    std::vector<bool> is_composite(limit + 1, false);
+    std::vector<char> is_composite(limit + 1, 0);
     uint64_t count = 0;
 
     for (uint64_t i = 2; i <= limit && count < n.value; ++i) {
@@ -244,7 +244,7 @@ int128_t nth_prime(int128_t n) {
             if (count == n.value) return int128_t(i);
             if (i * i <= limit) {
                 for (uint64_t j = i * i; j <= limit; j += i) {
-                    is_composite[j] = true;
+                    is_composite[j] = 1;
                 }
             }
         }

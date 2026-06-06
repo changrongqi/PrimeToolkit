@@ -1,4 +1,4 @@
-// factorization.cpp - Prime factorization
+﻿// factorization.cpp - Prime factorization
 // Copyright (c) 2024 PrimeToolkit Project
 //
 // Strategy: trial division for small factors + Pollard's Rho
@@ -6,8 +6,9 @@
 // Supports full 128-bit range.
 
 #include <algorithm>
-#include <vector>
+#include <map>
 #include <utility>
+#include <vector>
 
 #include "core/primality.h"
 #include "core/factorization.h"
@@ -151,11 +152,24 @@ static void trial_divide(int128_t& n,
 
 // ============================================================
 // Recursive factorization via Pollard's Rho
+// prime_cache avoids redundant Miller-Rabin tests
 // ============================================================
-static void factor_recursive(int128_t n,
-                               std::vector<std::pair<int128_t, int>>& factors) {
+static void factor_recursive(
+    int128_t n,
+    std::vector<std::pair<int128_t, int>>& factors,
+    std::map<native_u128, bool>& prime_cache) {
     if (n.value <= 1) return;
-    if (is_prime(n)) {
+
+    auto it = prime_cache.find(n.value);
+    bool prime;
+    if (it != prime_cache.end()) {
+        prime = it->second;
+    } else {
+        prime = is_prime(n);
+        prime_cache[n.value] = prime;
+    }
+
+    if (prime) {
         factors.emplace_back(n, 1);
         return;
     }
@@ -173,7 +187,7 @@ static void factor_recursive(int128_t n,
     }
     if (exp > 0) factors.emplace_back(factor, exp);
 
-    if (n.value > 1) factor_recursive(n, factors);
+    if (n.value > 1) factor_recursive(n, factors, prime_cache);
 }
 
 // ============================================================
@@ -184,15 +198,20 @@ std::vector<std::pair<int128_t, int>> factorize(int128_t n) {
     std::vector<std::pair<int128_t, int>> result;
     if (n.value <= 1) return result;
 
+    // Prime cache: avoid redundant Miller-Rabin tests
+    std::map<native_u128, bool> prime_cache;
+
     // Phase 1: Trial division for small factors (up to 1,000,000)
     trial_divide(n, result, 1000000ULL);
 
     // Phase 2: Pollard's Rho for remaining large composite
     if (n.value > 1) {
-        if (is_prime(n)) {
+        bool prime = is_prime(n);
+        prime_cache[n.value] = prime;
+        if (prime) {
             result.emplace_back(n, 1);
         } else {
-            factor_recursive(n, result);
+            factor_recursive(n, result, prime_cache);
         }
     }
 

@@ -1,0 +1,26 @@
+# Build output
+build/
+*.exe
+*.o
+*.obj
+
+# Web server logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+
+# Large binary artifacts
+*.dll
+
+# Visual Studio
+*.sln
+*.vcxproj
+*.vcxproj.filters
+Debug/
+Release/

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prime Number Toolkit</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ==================== Settings Dropdown ==================== -->
+<div class="settings-wrapper">
+    <button class="settings-btn" id="settings-btn" aria-label="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+    </button>
+    <div class="settings-dropdown hidden" id="settings-dropdown">
+        <div class="settings-section">
+            <span class="settings-section-label" data-i18n="language">Language</span>
+            <div class="lang-options">
+                <button class="lang-option" data-lang="en" id="lang-en">
+                    <span class="lang-dot"></span>
+                    <span data-i18n="langEn">English</span>
+                </button>
+                <button class="lang-option" data-lang="zh" id="lang-zh">
+                    <span class="lang-dot"></span>
+                    <span data-i18n="langZh">中文</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="app-container">
+    <header class="app-header">
+        <h1 class="app-title" data-i18n="appTitle">Prime Number Toolkit</h1>
+        <p class="app-subtitle" data-i18n="appSubtitle">High-Performance C++ Core / Deterministic Algorithms</p>
+    </header>
+
+    <nav class="tab-nav">
+        <button class="tab-btn active" data-tab="primality" data-i18n="tabPrimality">Primality Test</button>
+        <button class="tab-btn" data-tab="generation" data-i18n="tabGeneration">Prime Generation</button>
+        <button class="tab-btn" data-tab="factorization" data-i18n="tabFactorization">Factorization</button>
+        <button class="tab-btn" data-tab="nth-prime" data-i18n="tabNthPrime">Nth Prime</button>
+    </nav>
+
+    <main class="tab-content">
+
+        <!-- ==================== Primality Test ==================== -->
+        <section id="tab-primality" class="tab-panel active">
+            <div class="card">
+                <h2 class="card-title" data-i18n="tabPrimality">Primality Test</h2>
+                <p class="card-desc" data-i18n="ptDesc">Deterministic Miller-Rabin for all 64-bit integers. Instant result.</p>
+                <div class="input-group">
+                    <label data-i18n="ptEnterNumber">Enter a number:</label>
+                    <div class="input-row">
+                        <input type="text" id="pt-n" data-i18n="ptPlaceholder" data-i18n-type="placeholder" placeholder="e.g. 999999999989" autocomplete="off">
+                        <button id="pt-check" class="btn btn-primary" data-i18n="ptCheck">Check</button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label data-i18n="ptQuickNav">Quick navigation:</label>
+                    <div class="btn-row">
+                        <button class="btn btn-outline pt-quick" data-action="next" data-i18n="ptNextPrime">Next Prime</button>
+                        <button class="btn btn-outline pt-quick" data-action="prev" data-i18n="ptPrevPrime">Previous Prime</button>
+                    </div>
+                </div>
+                <div id="pt-result" class="result-area hidden"></div>
+                <div id="pt-loading" class="loading hidden">
+                    <div class="spinner"></div>
+                    <span data-i18n="loading">Computing...</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== Prime Generation ==================== -->
+        <section id="tab-generation" class="tab-panel">
+            <div class="card">
+                <h2 class="card-title" data-i18n="tabGeneration">Prime Generation</h2>
+                <p class="card-desc" data-i18n="genDesc">Generate all primes within a range using segmented sieve. Max range: 10,000,000.</p>
+                <div class="input-group">
+                    <div class="input-row">
+                        <div class="input-col">
+                            <label data-i18n="genFrom">From:</label>
+                            <input type="text" id="gen-from" data-i18n="genPlaceholderFrom" data-i18n-type="placeholder" placeholder="e.g. 1" autocomplete="off">
+                        </div>
+                        <div class="input-col">
+                            <label data-i18n="genTo">To:</label>
+                            <input type="text" id="gen-to" data-i18n="genPlaceholderTo" data-i18n-type="placeholder" placeholder="e.g. 1000" autocomplete="off">
+                        </div>
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button id="gen-generate" class="btn btn-primary" data-i18n="genGenerate">Generate Primes</button>
+                    <button id="gen-count" class="btn btn-outline" data-i18n="genCountOnly">Count Only</button>
+                </div>
+                <div id="gen-loading" class="loading hidden">
+                    <div class="spinner"></div>
+                    <span data-i18n="sieving">Sieving range...</span>
+                </div>
+                <div id="gen-result" class="result-area hidden">
+                    <div class="result-header">
+                        <span id="gen-result-summary" class="result-summary"></span>
+                        <button id="gen-copy" class="btn btn-sm btn-outline" data-i18n="genCopy">Copy All</button>
+                    </div>
+                    <div id="gen-result-list" class="prime-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== Factorization ==================== -->
+        <section id="tab-factorization" class="tab-panel">
+            <div class="card">
+                <h2 class="card-title" data-i18n="tabFactorization">Factorization</h2>
+                <p class="card-desc" data-i18n="facDesc">Decompose any 64-bit integer into prime factors. Uses trial division + Pollard's Rho.</p>
+                <div class="input-group">
+                    <label data-i18n="facEnterNumber">Enter a number:</label>
+                    <div class="input-row">
+                        <input type="text" id="fac-n" data-i18n="facPlaceholder" data-i18n-type="placeholder" placeholder="e.g. 1234567890123" autocomplete="off">
+                        <button id="fac-factorize" class="btn btn-primary" data-i18n="facFactorize">Factorize</button>
+                    </div>
+                </div>
+                <div id="fac-loading" class="loading hidden">
+                    <div class="spinner"></div>
+                    <span data-i18n="factoring">Factoring...</span>
+                </div>
+                <div id="fac-result" class="result-area hidden">
+                    <div class="factor-tree" id="fac-tree"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== Nth Prime ==================== -->
+        <section id="tab-nth-prime" class="tab-panel">
+            <div class="card">
+                <h2 class="card-title" data-i18n="tabNthPrime">Nth Prime</h2>
+                <p class="card-desc" data-i18n="nthDesc">Find the n-th prime number (1-indexed). Supports up to n = 10,000,000.</p>
+                <div class="input-group">
+                    <label data-i18n="nthEnterN">n =</label>
+                    <div class="input-row">
+                        <input type="text" id="nth-n" data-i18n="nthPlaceholder" data-i18n-type="placeholder" placeholder="e.g. 1000000" autocomplete="off">
+                        <button id="nth-find" class="btn btn-primary" data-i18n="nthFind">Find</button>
+                    </div>
+                </div>
+                <div id="nth-loading" class="loading hidden">
+                    <div class="spinner"></div>
+                    <span data-i18n="searching">Searching...</span>
+                </div>
+                <div id="nth-result" class="result-area hidden"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="app-footer">
+        <span data-i18n="footer">C++ Core · Miller-Rabin · Segmented Sieve · Pollard's Rho</span>
+    </footer>
+</div>
+
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

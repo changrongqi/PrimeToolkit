@@ -26,8 +26,67 @@ async function apiGet(endpoint, params = {}) {
     return resp.json();
 }
 
-// ---- Number formatting ----
-const fmt = n => Number(n).toLocaleString('en-US');
+// 128-bit unsigned integer maximum (2^128 - 1)
+const MAX_UINT128 = BigInt('340282366920938463463374607431768211455');
+
+// ---- Safe BigInt conversion ----
+function safeBigInt(str) {
+    if (!str || str.trim() === '') return null;
+    
+    const s = str.trim();
+    
+    // Remove leading zeros
+    const trimmed = s.replace(/^0+/, '') || '0';
+    
+    // Check for scientific notation
+    if (/^[\d.]+[eE][+-]?\d+$/.test(trimmed)) {
+        return null; // Cannot handle scientific notation safely
+    }
+    
+    // Check for decimal point
+    if (trimmed.includes('.')) {
+        return null; // Only integers allowed
+    }
+    
+    // Check length (max 39 digits for 128-bit)
+    if (trimmed.length > 39) {
+        return null;
+    }
+    
+    try {
+        const result = BigInt(trimmed);
+        if (result > MAX_UINT128) {
+            return null;
+        }
+        return result;
+    } catch {
+        return null;
+    }
+}
+
+// ---- Number formatting for large numbers ----
+function fmt(n) {
+    // Handle BigInt directly
+    if (typeof n === 'bigint') {
+        return n.toLocaleString('en-US');
+    }
+    
+    // For strings that look like numbers, always use BigInt to avoid precision loss
+    if (typeof n === 'string') {
+        const trimmed = n.trim();
+        if (/^\d+$/.test(trimmed)) {
+            return BigInt(trimmed).toLocaleString('en-US');
+        }
+        return trimmed;
+    }
+    
+    // For numbers within safe integer range, format normally
+    if (typeof n === 'number' && Number.isSafeInteger(n)) {
+        return n.toLocaleString('en-US');
+    }
+    
+    return String(n);
+}
 
 // ---- UI helpers ----
 const showLoading = id => $(`#${id}`)?.classList.remove('hidden');
@@ -98,7 +157,8 @@ function initTabs() {
 function initPrimalityTest() {
     $('#pt-check')?.addEventListener('click', () => {
         const n = val('pt-n');
-        if (!n || isNaN(n) || BigInt(n) < 2n) {
+        const nBig = safeBigInt(n);
+        if (nBig === null || nBig < 2n) {
             alert(I18n.t('ptInvalid'));
             return;
         }
@@ -109,7 +169,7 @@ function initPrimalityTest() {
                 hideLoading('pt-loading');
                 showResult('pt-result');
                 const isPrime = data.result;
-                const num = fmt(Number(n));
+                const num = fmt(n);
                 $('#pt-result').innerHTML = `
                     <div class="result-card">
                         <span class="result-label">${I18n.t('ptResult')}</span>
@@ -136,7 +196,8 @@ function initPrimalityTest() {
     $$('.pt-quick').forEach(btn => {
         btn.addEventListener('click', () => {
             const n = val('pt-n');
-            if (!n || isNaN(n) || BigInt(n) < 1n) {
+            const nBig = safeBigInt(n);
+            if (nBig === null || nBig < 1n) {
                 alert(I18n.t('ptInvalid'));
                 return;
             }
@@ -151,9 +212,8 @@ function initPrimalityTest() {
                     $('#pt-result').innerHTML = `
                         <div class="result-card">
                             <span class="result-label">${label}</span>
-                            <span class="result-value prime">${fmt(Number(data.result))}</span>
+                            <span class="result-value prime">${fmt(data.result)}</span>
                         </div>`;
-                    $('#pt-n').value = data.result;
                 })
                 .catch(err => {
                     hideLoading('pt-loading');
@@ -177,30 +237,33 @@ function initPrimeGeneration() {
     function renderPrimes(from, to, primes) {
         showResult('gen-result');
         $('#gen-result-summary').textContent =
-            `${I18n.t('genFound')} ${fmt(primes.length)} ${I18n.t('genPrimes')} [${fmt(Number(from))}, ${fmt(Number(to))}]`;
+            `${I18n.t('genFound')} ${fmt(primes.length)} ${I18n.t('genPrimes')} [${fmt(from)}, ${fmt(to)}]`;
         listEl.innerHTML = primes.map(p =>
-            `<span class="prime-chip">${fmt(Number(p))}</span>`
+            `<span class="prime-chip">${fmt(p)}</span>`
         ).join('');
-        listEl.dataset.primes = primes.join(', ');
+        // For copy, format primes with commas
+        listEl.dataset.primes = primes.map(p => fmt(p)).join(', ');
     }
 
     function renderCount(from, to, count) {
         showResult('gen-result');
         $('#gen-result-summary').textContent =
-            `${I18n.t('genCount')} ${fmt(count)} ${I18n.t('genPrimesIn')} [${fmt(Number(from))}, ${fmt(Number(to))}]`;
+            `${I18n.t('genCount')} ${fmt(count)} ${I18n.t('genPrimesIn')} [${fmt(from)}, ${fmt(to)}]`;
         listEl.innerHTML = '';
     }
 
     $('#gen-generate')?.addEventListener('click', () => {
         const from = val('gen-from');
         const to   = val('gen-to');
-        if (!from || !to || isNaN(from) || isNaN(to)) {
+        const fromBig = safeBigInt(from);
+        const toBig   = safeBigInt(to);
+        if (fromBig === null || toBig === null) {
             alert(I18n.t('genInvalidInput')); return;
         }
-        if (BigInt(from) > BigInt(to)) {
+        if (fromBig > toBig) {
             alert(I18n.t('genInvalidRange')); return;
         }
-        if (BigInt(to) - BigInt(from) > 10000000n) {
+        if (toBig - fromBig > 10000000n) {
             alert(I18n.t('genRangeTooLarge')); return;
         }
         hideResult('gen-result');
@@ -217,10 +280,12 @@ function initPrimeGeneration() {
     $('#gen-count')?.addEventListener('click', () => {
         const from = val('gen-from');
         const to   = val('gen-to');
-        if (!from || !to || isNaN(from) || isNaN(to)) {
+        const fromBig = safeBigInt(from);
+        const toBig   = safeBigInt(to);
+        if (fromBig === null || toBig === null) {
             alert(I18n.t('genInvalidInput')); return;
         }
-        if (BigInt(from) > BigInt(to)) {
+        if (fromBig > toBig) {
             alert(I18n.t('genInvalidRange')); return;
         }
         hideResult('gen-result');
@@ -256,7 +321,8 @@ function initPrimeGeneration() {
 function initFactorization() {
     $('#fac-factorize')?.addEventListener('click', () => {
         const n = val('fac-n');
-        if (!n || isNaN(n) || BigInt(n) < 2n) {
+        const nBig = safeBigInt(n);
+        if (nBig === null || nBig < 2n) {
             alert(I18n.t('facInvalid')); return;
         }
         hideResult('fac-result');
@@ -266,7 +332,6 @@ function initFactorization() {
                 hideLoading('fac-loading');
                 showResult('fac-result');
                 const factors = data.result;
-                const bigN = BigInt(n);
                 let productCheck = 1n;
                 let html = '';
                 factors.forEach(([prime, exp]) => {
@@ -274,14 +339,14 @@ function initFactorization() {
                     for (let e = 0; e < exp; e++) productCheck *= bigP;
                     html += `
                         <div class="factor-item">
-                            <span class="factor-prime">${fmt(Number(prime))}</span>
+                            <span class="factor-prime">${fmt(prime)}</span>
                             ${exp > 1 ? `<span class="factor-exp">^${exp}</span>` : ''}
                         </div>`;
                 });
-                const valid = productCheck === bigN;
+                const valid = productCheck === nBig;
                 html += `
                     <div class="factor-validation ${valid ? 'valid' : ''}">
-                        ${I18n.t('facProductCheck')} ${fmt(Number(productCheck))}
+                        ${I18n.t('facProductCheck')} ${fmt(productCheck.toString())}
                         (${valid ? I18n.t('facMatch') : I18n.t('facMismatch')})
                     </div>`;
                 $('#fac-tree').innerHTML = html;
@@ -302,7 +367,8 @@ function initFactorization() {
 function initNthPrime() {
     $('#nth-find')?.addEventListener('click', () => {
         const n = val('nth-n');
-        if (!n || isNaN(n) || BigInt(n) < 1n || BigInt(n) > 10000000n) {
+        const nBig = safeBigInt(n);
+        if (nBig === null || nBig < 1n || nBig > 10000000n) {
             alert(I18n.t('nthInvalid')); return;
         }
         hideResult('nth-result');
@@ -315,7 +381,7 @@ function initNthPrime() {
                     <div class="result-card">
                         <span class="result-label">${I18n.t('nthResult')}</span>
                         <span class="result-value prime">
-                            ${I18n.t('nthThe')} ${fmt(Number(n))}${I18n.t('nthth')} ${fmt(Number(data.result))}
+                            ${I18n.t('nthThe')} ${fmt(n)}${I18n.t('nthth')} ${fmt(data.result)}
                         </span>
                     </div>`;
             })

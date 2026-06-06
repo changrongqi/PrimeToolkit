@@ -13,13 +13,14 @@
 #include <shellapi.h>
 
 #include <cstdio>
-#include <cstring>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
 #include <cctype>
 
+#ifdef _MSC_VER
 #pragma comment(lib, "ws2_32.lib")
+#endif
 
 namespace HttpServer {
 
@@ -61,12 +62,11 @@ void Server::serve_static(const std::string& dir) {
 
 // ---------- URL decoding ----------
 
-std::string Server::url_decode(const std::string& str) {
+static std::string url_decode_impl(const std::string& str) {
     std::string result;
     result.reserve(str.size());
     for (size_t i = 0; i < str.size(); ++i) {
         if (str[i] == '%' && i + 2 < str.size()) {
-            int value = 0;
             auto hex_to_int = [](char c) -> int {
                 if (c >= '0' && c <= '9') return c - '0';
                 if (c >= 'A' && c <= 'F') return c - 'A' + 10;
@@ -81,13 +81,13 @@ std::string Server::url_decode(const std::string& str) {
                 continue;
             }
         }
-        if (str[i] == '+') {
-            result += ' ';
-        } else {
-            result += str[i];
-        }
+        result += (str[i] == '+') ? ' ' : str[i];
     }
     return result;
+}
+
+std::string Server::url_decode(const std::string& str) {
+    return url_decode_impl(str);
 }
 
 void Server::parse_query_params(const std::string& query_string,
@@ -102,6 +102,24 @@ void Server::parse_query_params(const std::string& query_string,
             std::string key = url_decode(query_string.substr(pos, eq - pos));
             std::string val = url_decode(query_string.substr(eq + 1, amp - eq - 1));
             params[std::move(key)] = std::move(val);
+        }
+        pos = amp + 1;
+    }
+}
+
+// Static helper for request parsing
+static void parse_query_params_static(const std::string& query_string,
+                                       std::unordered_map<std::string, std::string>& params,
+                                       const std::function<std::string(const std::string&)>& decoder) {
+    if (query_string.empty()) return;
+    size_t pos = 0;
+    while (pos < query_string.size()) {
+        size_t eq = query_string.find('=', pos);
+        size_t amp = query_string.find('&', pos);
+        if (amp == std::string::npos) amp = query_string.size();
+        if (eq != std::string::npos && eq < amp) {
+            params[decoder(query_string.substr(pos, eq - pos))] =
+                decoder(query_string.substr(eq + 1, amp - eq - 1));
         }
         pos = amp + 1;
     }
@@ -179,8 +197,7 @@ static Request parse_http_request(SOCKET sock) {
 
     // Parse query parameters
     if (!query_string.empty()) {
-        Server temp_server; // Only need url_decode, which is public
-        temp_server.parse_query_params(query_string, req.query_params);
+        parse_query_params_static(query_string, req.query_params, url_decode_impl);
     }
 
     // Read headers (we just skip them for simplicity)

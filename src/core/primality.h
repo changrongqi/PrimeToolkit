@@ -10,8 +10,6 @@
 namespace PrimeCore {
 
 // Deterministic Miller-Rabin primality test.
-// For 64-bit range: uses bases {2, 325, 9375, 28178, 450775, 9780504, 1795265022}
-// For 128-bit range: uses additional bases per known deterministic sets.
 // Returns true if n is definitely prime.
 bool is_prime(int128_t n);
 
@@ -20,9 +18,5 @@ int128_t next_prime(int128_t n);
 
 // Find previous prime <= n (returns 0 if none found)
 int128_t prev_prime(int128_t n);
-
-// Get the nth prime (1-indexed: nth_prime(1) = 2)
-// Supports n up to practical limits (~10^8 for reasonable runtime)
-int128_t nth_prime(int128_t n);
 
 } // namespace PrimeCore

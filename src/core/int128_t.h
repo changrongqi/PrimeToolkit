@@ -99,6 +99,46 @@ struct int128_t {
     static int128_t from_string(const std::string& s);
 };
 
+// ============================================================
+// Free functions: modular arithmetic & integer sqrt
+// Single responsibility: provide fast 128-bit modular ops
+// ============================================================
+
+// Modular multiplication: (a * b) % mod.
+// Fast path: when both operands fit in 64-bit, use native 128-bit multiply.
+// Slow path: binary decomposition (128 iterations max).
+inline int128_t mul_mod128(int128_t a, int128_t b, int128_t mod) {
+    if (a.value <= UINT64_MAX && b.value <= UINT64_MAX) {
+        return (static_cast<native_u128>(a.lo()) * b.lo()) % mod.value;
+    }
+    native_u128 r = 0;
+    a.value %= mod.value;
+    b.value %= mod.value;
+    while (b.value) {
+        if (b.value & 1) {
+            r += a.value;
+            if (r >= mod.value) r -= mod.value;
+        }
+        a.value <<= 1;
+        if (a.value >= mod.value) a.value -= mod.value;
+        b.value >>= 1;
+    }
+    return r;
+}
+
+// Integer square root via Newton's method.
+// Converges in O(log log n) iterations.
+inline int128_t isqrt128(int128_t n) {
+    if (n.value <= 1) return n;
+    native_u128 x = n.value;
+    native_u128 y = (x + 1) >> 1;
+    while (y < x) {
+        x = y;
+        y = (x + n.value / x) >> 1;
+    }
+    return x;
+}
+
 // ---- Free-function operators for mixed-type arithmetic ----
 constexpr int128_t operator+(uint64_t a, int128_t b) noexcept { return int128_t(a) + b; }
 constexpr int128_t operator-(uint64_t a, int128_t b) noexcept { return int128_t(a) - b; }

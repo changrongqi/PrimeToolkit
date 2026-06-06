@@ -1,16 +1,15 @@
-// ============================================================
-// main.cpp - Application entry point
-// Single responsibility: wire up routes and start the server
-// ============================================================
+/*
+ * main.cpp - Application entry point
+ * Copyright (c) 2024 PrimeToolkit Project
+ * 
+ * Single responsibility: wire up routes and start the server.
+ */
+
+#include <cstdio>
+#include <windows.h>
 
 #include "core/prime_core.h"
 #include "server/http_server.h"
-
-#include <cstdio>
-#include <cstdlib>
-#include <string>
-#include <sstream>
-#include <windows.h>
 
 using namespace PrimeCore;
 
@@ -18,24 +17,9 @@ using namespace PrimeCore;
 // JSON helpers (no library dependency)
 // ============================================================
 
-static std::string json_escape(const std::string& s) {
-    std::string out;
-    out.reserve(s.size() + 2);
-    for (char c : s) {
-        switch (c) {
-            case '"':  out += "\\\""; break;
-            case '\\': out += "\\\\"; break;
-            case '\n': out += "\\n"; break;
-            case '\r': out += "\\r"; break;
-            case '\t': out += "\\t"; break;
-            default:   out += c;
-        }
-    }
-    return out;
-}
-
 static std::string json_number(int128_t n) {
-    return n.to_string();
+    // Return as quoted string to prevent JavaScript precision loss for large numbers
+    return "\"" + n.to_string() + "\"";
 }
 
 static std::string json_bool(bool b) {
@@ -47,7 +31,8 @@ static std::string factorization_json(const std::vector<std::pair<int128_t, int>
     std::string json = "[";
     for (size_t i = 0; i < factors.size(); ++i) {
         if (i > 0) json += ",";
-        json += "[" + factors[i].first.to_string() + "," + std::to_string(factors[i].second) + "]";
+        // Prime as quoted string, exponent as number
+        json += "[\"" + factors[i].first.to_string() + "\"," + std::to_string(factors[i].second) + "]";
     }
     json += "]";
     return json;
@@ -58,7 +43,7 @@ static std::string primes_json(const std::vector<int128_t>& primes) {
     std::string json = "[";
     for (size_t i = 0; i < primes.size(); ++i) {
         if (i > 0) json += ",";
-        json += primes[i].to_string();
+        json += "\"" + primes[i].to_string() + "\"";
     }
     json += "]";
     return json;
@@ -82,7 +67,7 @@ static bool get_query_int128(const HttpServer::Request& req, const std::string& 
 static HttpServer::Response error_response(int code, const std::string& msg) {
     HttpServer::Response res;
     res.status_code = code;
-    res.body = R"({"error":")" + json_escape(msg) + R"("})";
+    res.body = "{\"error\":\"" + msg + "\"}";
     return res;
 }
 

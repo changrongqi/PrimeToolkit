@@ -1,11 +1,14 @@
-// ============================================================
-// int128_t.cpp - I/O implementation for int128_t
-// Single responsibility: decimal string <-> 128-bit conversion
-// ============================================================
+/*
+ * int128_t.cpp - I/O implementation for int128_t
+ * Copyright (c) 2024 PrimeToolkit Project
+ * 
+ * Single responsibility: decimal string <-> 128-bit conversion.
+ */
 
-#include "int128_t.h"
 #include <algorithm>
 #include <stdexcept>
+
+#include "int128_t.h"
 
 namespace PrimeCore {
 

@@ -85,30 +85,6 @@ static std::string url_decode_impl(const std::string& str) {
     return result;
 }
 
-std::string Server::url_decode(const std::string& str) {
-    return url_decode_impl(str);
-}
-
-void Server::parse_query_params(
-    const std::string& query_string,
-    std::unordered_map<std::string, std::string>& params) {
-    if (query_string.empty()) return;
-    size_t pos = 0;
-    while (pos < query_string.size()) {
-        size_t eq = query_string.find('=', pos);
-        size_t amp = query_string.find('&', pos);
-        if (amp == std::string::npos) amp = query_string.size();
-        if (eq != std::string::npos && eq < amp) {
-            std::string key = url_decode(
-                query_string.substr(pos, eq - pos));
-            std::string val = url_decode(
-                query_string.substr(eq + 1, amp - eq - 1));
-            params[std::move(key)] = std::move(val);
-        }
-        pos = amp + 1;
-    }
-}
-
 // Static helper for request parsing
 static void parse_query_params_static(
     const std::string& query_string,

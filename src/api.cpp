@@ -100,6 +100,10 @@ HttpServer::Response handle_is_prime(const HttpServer::Request& req) {
     if (!get_query_int128(req, "n", n)) {
         return error_response(400, "Missing or invalid parameter 'n'");
     }
+    if (n.value < 2) {
+        return error_response(400,
+            "Number must be >= 2 for primality test");
+    }
     return ok_response(json_bool(PrimeCore::is_prime(n)));
 }
 
@@ -107,6 +111,10 @@ HttpServer::Response handle_next_prime(const HttpServer::Request& req) {
     int128_t n;
     if (!get_query_int128(req, "n", n)) {
         return error_response(400, "Missing or invalid parameter 'n'");
+    }
+    if (n.value >= ~native_u128(0) - 1000) {
+        return error_response(400,
+            "Number too large, no next prime in 128-bit range");
     }
     return ok_response(json_number(PrimeCore::next_prime(n)));
 }

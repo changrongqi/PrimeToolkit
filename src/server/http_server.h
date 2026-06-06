@@ -1,4 +1,4 @@
-﻿// http_server.h  --  Minimal multi-threaded HTTP server (Winsock2)
+// http_server.h  --  Minimal multi-threaded HTTP server (Winsock2)
 // Copyright (c) 2024 PrimeToolkit Project
 //
 // Single responsibility: accept HTTP connections and dispatch
@@ -71,13 +71,7 @@ class Server {
 
     int port() const { return port_; }
 
-    // URL helpers (exposed for internal request parsing)
-    void parse_query_params(
-        const std::string& query_string,
-        std::unordered_map<std::string, std::string>& params);
-    std::string url_decode(const std::string& str);
-
- private:
+    private:
     void accept_loop();
     void worker_loop();
     void handle_client(SOCKET client_socket);

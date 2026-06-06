@@ -1,25 +1,27 @@
-// http_server.cpp  --  HTTP server implementation (Windows/Winsock2)
+// http_server.cpp  --  HTTP server implementation
 // Copyright (c) 2024 PrimeToolkit Project
 //
 // Single responsibility: handle HTTP connections and serve
 // static files alongside registered API routes.
 // Uses 4KB buffered socket I/O and a fixed-size thread pool.
+// Cross-platform: Windows (Winsock2) and POSIX (Linux/macOS).
 
 #include "server/http_server.h"
 
-#include <shellapi.h>
-
-#include <cstdio>
-#include <cctype>
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 #include <utility>
 
-#ifdef _MSC_VER
-#pragma comment(lib, "ws2_32.lib")
+#ifdef PRIME_SOCKET_WINDOWS
+    #include <shellapi.h>
+#else
+    #include <spawn.h>
+    #include <sys/wait.h>
+    #include <unistd.h>
 #endif
 
 namespace HttpServer {
@@ -38,17 +40,15 @@ static const char* get_status_message(int code) {
 }
 
 Server::Server()
-    : listen_socket_(INVALID_SOCKET)
+    : listen_socket_(PRIME_INVALID_SOCKET)
     , port_(0)
     , running_(false) {
-    // Initialize Winsock
-    WSADATA wsa_data;
-    WSAStartup(MAKEWORD(2, 2), &wsa_data);
+    PrimeSocket::init();
 }
 
 Server::~Server() {
     stop();
-    WSACleanup();
+    PrimeSocket::cleanup();
 }
 
 void Server::get(const std::string& path, RouteHandler handler) {
@@ -141,7 +141,7 @@ std::string Server::read_file(const std::string& filepath) {
 // ============================================================
 class SocketReader {
  public:
-    explicit SocketReader(SOCKET sock) : sock_(sock) {}
+    explicit SocketReader(SocketType sock) : sock_(sock) {}
 
     // Read one line (strips CR/LF). Returns empty string on EOF.
     std::string read_line() {
@@ -151,10 +151,9 @@ class SocketReader {
             int c = read_char();
             if (c < 0) return line;
             if (c == '\r') {
-                // Peek: if next is '\n', consume it
                 int next = read_char();
                 if (next >= 0 && next != '\n') {
-                    --pos_;  // unread
+                    --pos_;
                 }
                 break;
             }
@@ -189,7 +188,7 @@ class SocketReader {
         return static_cast<unsigned char>(buf_[pos_++]);
     }
 
-    SOCKET sock_;
+    SocketType sock_;
     char buf_[4096];
     int pos_ = 0;
     int end_ = 0;
@@ -197,18 +196,16 @@ class SocketReader {
 
 // ---------- Request parsing ----------
 
-static Request parse_http_request(SOCKET sock) {
+static Request parse_http_request(SocketType sock) {
     Request req;
     SocketReader reader(sock);
 
-    // Parse request line
     std::string request_line = reader.read_line();
     if (request_line.empty()) return req;
 
     std::istringstream line_stream(request_line);
     line_stream >> req.method >> req.path;
 
-    // Extract query string from path
     size_t qmark = req.path.find('?');
     std::string query_string;
     if (qmark != std::string::npos) {
@@ -216,13 +213,11 @@ static Request parse_http_request(SOCKET sock) {
         req.path = req.path.substr(0, qmark);
     }
 
-    // Parse query parameters
     if (!query_string.empty()) {
         parse_query_params_static(
             query_string, req.query_params, url_decode_impl);
     }
 
-    // Read headers
     int content_length = 0;
     while (true) {
         std::string header = reader.read_line();
@@ -238,7 +233,6 @@ static Request parse_http_request(SOCKET sock) {
         }
     }
 
-    // Read body if present
     if (content_length > 0) {
         req.body.resize(content_length);
         int total = reader.read_bytes(req.body.data(), content_length);
@@ -263,11 +257,9 @@ Response Server::handle_request(const Request& req) {
         return it->second(req);
     }
 
-    // Try static file serving
     if (!static_dir_.empty()) {
         std::string filepath = static_dir_ + "/" +
             (req.path == "/" ? "index.html" : req.path);
-        // Security: prevent directory traversal
         if (filepath.find("..") != std::string::npos) {
             Response res;
             res.status_code = 404;
@@ -292,17 +284,12 @@ Response Server::handle_request(const Request& req) {
 
 // ---------- Client handling ----------
 
-void Server::handle_client(SOCKET sock) {
-    // Set socket timeout (10 seconds)
-    DWORD timeout = 10000;
-    setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,
-               reinterpret_cast<const char*>(&timeout),
-               sizeof(timeout));
+void Server::handle_client(SocketType sock) {
+    PrimeSocket::set_timeout(sock, 10000);
 
     Request req = parse_http_request(sock);
     Response res = handle_request(req);
 
-    // Build HTTP response
     std::string http_response;
     http_response.reserve(256 + res.body.size());
 
@@ -324,7 +311,7 @@ void Server::handle_client(SOCKET sock) {
 
     send(sock, http_response.data(),
          static_cast<int>(http_response.size()), 0);
-    closesocket(sock);
+    PrimeSocket::close_socket(sock);
 }
 
 // ============================================================
@@ -333,7 +320,7 @@ void Server::handle_client(SOCKET sock) {
 
 void Server::worker_loop() {
     while (true) {
-        SOCKET client;
+        SocketType client;
         {
             std::unique_lock<std::mutex> lock(queue_mutex_);
             queue_cv_.wait(lock, [this]() {
@@ -351,15 +338,14 @@ void Server::worker_loop() {
 
 void Server::accept_loop() {
     while (running_.load()) {
-        SOCKET client = accept(listen_socket_, nullptr, nullptr);
-        if (client == INVALID_SOCKET) {
+        SocketType client = accept(listen_socket_, nullptr, nullptr);
+        if (client == PRIME_INVALID_SOCKET) {
             if (running_.load()) {
-                Sleep(50);
+                PrimeSocket::sleep_ms(50);
             }
             continue;
         }
 
-        // Enqueue for thread pool
         {
             std::lock_guard<std::mutex> lock(queue_mutex_);
             client_queue_.push(client);
@@ -368,20 +354,42 @@ void Server::accept_loop() {
     }
 }
 
+// ---------- Open browser (cross-platform) ----------
+
+static void open_browser(const std::string& url) {
+#ifdef PRIME_SOCKET_WINDOWS
+    ShellExecuteA(nullptr, "open", url.c_str(),
+                  nullptr, nullptr, SW_SHOWNORMAL);
+#else
+    pid_t pid = fork();
+    if (pid == 0) {
+        execlp("xdg-open", "xdg-open", url.c_str(),
+               reinterpret_cast<char*>(nullptr));
+        execlp("open", "open", url.c_str(),
+               reinterpret_cast<char*>(nullptr));
+        _exit(1);
+    }
+#endif
+}
+
 // ---------- Start / Stop ----------
 
-bool Server::start(int port, bool open_browser) {
+bool Server::start(int port, bool open_browser_flag) {
     port_ = port;
 
     listen_socket_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (listen_socket_ == INVALID_SOCKET) {
+    if (listen_socket_ == PRIME_INVALID_SOCKET) {
         return false;
     }
 
-    // Allow port reuse
     int reuse = 1;
+#ifdef PRIME_SOCKET_WINDOWS
     setsockopt(listen_socket_, SOL_SOCKET, SO_REUSEADDR,
                reinterpret_cast<const char*>(&reuse), sizeof(reuse));
+#else
+    setsockopt(listen_socket_, SOL_SOCKET, SO_REUSEADDR,
+               &reuse, sizeof(reuse));
+#endif
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
@@ -390,36 +398,33 @@ bool Server::start(int port, bool open_browser) {
 
     if (bind(listen_socket_,
              reinterpret_cast<sockaddr*>(&addr),
-             sizeof(addr)) == SOCKET_ERROR) {
-        closesocket(listen_socket_);
-        listen_socket_ = INVALID_SOCKET;
+             sizeof(addr)) == PRIME_SOCKET_ERROR) {
+        PrimeSocket::close_socket(listen_socket_);
+        listen_socket_ = PRIME_INVALID_SOCKET;
         return false;
     }
 
-    if (listen(listen_socket_, SOMAXCONN) == SOCKET_ERROR) {
-        closesocket(listen_socket_);
-        listen_socket_ = INVALID_SOCKET;
+    if (listen(listen_socket_, SOMAXCONN) == PRIME_SOCKET_ERROR) {
+        PrimeSocket::close_socket(listen_socket_);
+        listen_socket_ = PRIME_INVALID_SOCKET;
         return false;
     }
 
     running_.store(true);
 
-    // Start worker threads (thread pool)
-    int num_workers = std::thread::hardware_concurrency();
+    int num_workers = static_cast<int>(std::thread::hardware_concurrency());
     if (num_workers < 2) num_workers = 2;
     if (num_workers > 8) num_workers = 8;
     for (int i = 0; i < num_workers; ++i) {
         worker_threads_.emplace_back(&Server::worker_loop, this);
     }
 
-    // Start accept thread
     accept_thread_ = std::thread(&Server::accept_loop, this);
 
-    if (open_browser) {
+    if (open_browser_flag) {
         std::string url =
             "http://localhost:" + std::to_string(port) + "/";
-        ShellExecuteA(nullptr, "open", url.c_str(),
-                      nullptr, nullptr, SW_SHOWNORMAL);
+        open_browser(url);
     }
 
     return true;
@@ -428,15 +433,13 @@ bool Server::start(int port, bool open_browser) {
 void Server::stop() {
     running_.store(false);
 
-    // Wake all workers
     queue_cv_.notify_all();
 
-    if (listen_socket_ != INVALID_SOCKET) {
-        closesocket(listen_socket_);
-        listen_socket_ = INVALID_SOCKET;
+    if (listen_socket_ != PRIME_INVALID_SOCKET) {
+        PrimeSocket::close_socket(listen_socket_);
+        listen_socket_ = PRIME_INVALID_SOCKET;
     }
 
-    // Join worker threads
     for (auto& t : worker_threads_) {
         if (t.joinable()) t.join();
     }

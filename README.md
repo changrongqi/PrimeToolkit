@@ -13,15 +13,15 @@ A high-performance prime number toolkit with C++ core and elegant web UI.
 
 ## Tech Stack
 
-- **Backend**: C++17, Winsock2 (built-in HTTP server)
+- **Backend**: C++17, Cross-platform socket (Winsock2 / POSIX)
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript
-- **Build**: MinGW / MSVC compatible (auto-detection)
+- **Build**: MinGW / MSVC / GCC (auto-detection)
 
 ## Requirements
 
-- **OS**: Windows 10/11 (64-bit)
-- **Compiler**: MinGW-w64 (g++) or Visual Studio 2022 with C++ tools
-  - MinGW: https://www.mingw-w64.org/
+- **OS**: Windows 10/11, Linux, macOS (64-bit)
+- **Compiler**: g++ 9+, MinGW-w64, or Visual Studio 2022 with C++ tools
+  - MinGW-w64: https://www.mingw-w64.org/
   - VS2022: https://visualstudio.microsoft.com/downloads/
 
 ## Performance Highlights
@@ -33,12 +33,17 @@ A high-performance prime number toolkit with C++ core and elegant web UI.
 
 ## Quick Start
 
+### Windows
 ```bash
-# Build (Windows)
 .\build.bat
-
-# Run (auto-starts server and opens browser)
 .\build\bin\PrimeToolkit.exe
+```
+
+### Linux / macOS
+```bash
+chmod +x build.sh
+./build.sh
+./build/bin/PrimeToolkit
 ```
 
 > Note: The executable is located in `build\bin\` after building.
@@ -53,7 +58,9 @@ src/
 │   ├── primality.cpp      # Miller-Rabin primality test
 │   ├── sieve.cpp          # Segmented sieve
 │   └── factorization.cpp  # Pollard's Rho factorization
-├── server/        # HTTP server (Winsock2)
+├── server/        # HTTP server (cross-platform)
+│   ├── socket.h          # Socket abstraction layer
+│   └── http_server.cpp   # Multi-threaded HTTP server
 └── web/           # Frontend UI (i18n support)
 ```
 

@@ -1,17 +1,13 @@
-// http_server.h  --  Minimal multi-threaded HTTP server (Winsock2)
+// http_server.h  --  Minimal multi-threaded HTTP server
 // Copyright (c) 2024 PrimeToolkit Project
 //
 // Single responsibility: accept HTTP connections and dispatch
 // routes via a fixed-size thread pool.
+// Cross-platform: Windows (Winsock2) and POSIX (Linux/macOS).
 
 #pragma once
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <windows.h>
+#include "server/socket.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -71,15 +67,15 @@ class Server {
 
     int port() const { return port_; }
 
-    private:
+ private:
     void accept_loop();
     void worker_loop();
-    void handle_client(SOCKET client_socket);
+    void handle_client(SocketType client_socket);
     Response handle_request(const Request& req);
     std::string read_file(const std::string& filepath);
     std::string get_mime_type(const std::string& path);
 
-    SOCKET listen_socket_;
+    SocketType listen_socket_;
     int port_;
     std::atomic<bool> running_;
 
@@ -88,7 +84,7 @@ class Server {
 
     // Thread pool
     std::vector<std::thread> worker_threads_;
-    std::queue<SOCKET> client_queue_;
+    std::queue<SocketType> client_queue_;
     std::mutex queue_mutex_;
     std::condition_variable queue_cv_;
 

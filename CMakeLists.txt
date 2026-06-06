@@ -48,9 +48,11 @@ else()
     target_compile_options(PrimeToolkit PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-# Link Windows libraries
+# Link platform-specific libraries
 if(WIN32)
-    target_link_libraries(PrimeToolkit PRIVATE ws2_32 shell32)
+    target_link_libraries(PrimeToolkit PRIVATE ws2_32)
+else()
+    target_link_libraries(PrimeToolkit PRIVATE pthread)
 endif()
 
 # Copy web directory to output

@@ -44,7 +44,6 @@ echo -e "[1/2] Compiling..."
     src/main.cpp \
     -I src \
     -pthread \
-    -lcurl \
     2>&1
 
 if [ $? -eq 0 ]; then

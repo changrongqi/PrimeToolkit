@@ -1,0 +1,14 @@
+# The command to run when the repl starts
+run = ["bash", "-c", "export WEB_DIR=./web && export PORT=8080 && ./build/bin/PrimeToolkit"]
+
+# The build command
+compile = ["bash", "build.sh"]
+
+# The language
+language = "cpp"
+
+entrypoint = "src/main.cpp"
+
+[packager]
+language = "bash"
+
